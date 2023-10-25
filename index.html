@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Date Picker</title>
+    <link rel="stylesheet" href="vendor/codalia/css/styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/localeData.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Page Title</h1>
+
+        <form action="#" method="post" id="form" role="form" class="php-email-form">
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label for="date">Date</label>
+                    <input type="text" name="date" class="form-control" id="date">
+                </div>
+            </div>
+        </form>
+
+        <div class="container">
+            <div class="row text-center">
+                <div class="col border">
+                   Sun
+                </div>
+                <div class="col border">
+                   Mon
+                </div>
+                <div class="col border">
+                   Tue
+                </div>
+                <div class="col border">
+                   Wed
+                </div>
+                <div class="col border">
+                   Thu
+                </div>
+                <div class="col border">
+                   Fri
+                </div>
+                <div class="col border">
+                   Sat
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col border">
+                   1
+                </div>
+                <div class="col border">
+                   2
+                </div>
+                <div class="col border">
+                   3
+                </div>
+                <div class="col border">
+                   4
+                </div>
+                <div class="col border">
+                   5
+                </div>
+                <div class="col border">
+                   6
+                </div>
+                <div class="col border">
+                   7
+                </div>
+            </div>
+        </div>
+
+        <div class="datepicker datepicker-dropdown datepicker-orient-left datepicker-orient-bottom" style="left: 0px; top: 40px;">
+            <div class="datepicker-picker">
+                <div class="datepicker-header">
+                    <div class="datepicker-title" style="display: none;"></div>
+                        <div class="datepicker-controls">
+                            <button type="button" class="button prev-button prev-btn" tabindex="-1">«</button>
+                            <button type="button" class="button view-switch" tabindex="-1">October 2023</button>
+                            <button type="button" class="button next-button next-btn" tabindex="-1">»</button>
+                        </div>
+                    </div>
+                    <div class="datepicker-main">
+                        <div class="datepicker-view">
+                            <div class="days">
+                                <div class="days-of-week">
+                                    <span class="dow">Su</span>
+                                    <span class="dow">Mo</span>
+                                    <span class="dow">Tu</span>
+                                    <span class="dow">We</span>
+                                    <span class="dow">Th</span>
+                                    <span class="dow">Fr</span>
+                                    <span class="dow">Sa</span>
+                                </div>
+                                <div class="datepicker-grid">
+                                    <span data-date="1696111200000" class="datepicker-cell day selected focused">1</span>
+                                    <span data-date="1696197600000" class="datepicker-cell day">2</span>
+                                    <span data-date="1696284000000" class="datepicker-cell day">3</span>
+                                    <span data-date="1696370400000" class="datepicker-cell day">4</span>
+                                    <span data-date="1696456800000" class="datepicker-cell day">5</span>
+                                    <span data-date="1696543200000" class="datepicker-cell day">6</span>
+                                    <span data-date="1696629600000" class="datepicker-cell day">7</span>
+                                    <span data-date="1696716000000" class="datepicker-cell day">8</span>
+                                    <span data-date="1696802400000" class="datepicker-cell day">9</span>
+                                    <span data-date="1696888800000" class="datepicker-cell day">10</span>
+                                    <span data-date="1696975200000" class="datepicker-cell day">11</span>
+                                    <span data-date="1697061600000" class="datepicker-cell day">12</span>
+                                    <span data-date="1697148000000" class="datepicker-cell day">13</span>
+                                    <span data-date="1697234400000" class="datepicker-cell day">14</span>
+                                    <span data-date="1697320800000" class="datepicker-cell day">15</span>
+                                    <span data-date="1697407200000" class="datepicker-cell day">16</span>
+                                    <span data-date="1697493600000" class="datepicker-cell day">17</span>
+                                    <span data-date="1697580000000" class="datepicker-cell day">18</span>
+                                    <span data-date="1697666400000" class="datepicker-cell day">19</span>
+                                    <span data-date="1697752800000" class="datepicker-cell day">20</span>
+                                    <span data-date="1697839200000" class="datepicker-cell day">21</span>
+                                    <span data-date="1697925600000" class="datepicker-cell day">22</span>
+                                    <span data-date="1698012000000" class="datepicker-cell day">23</span>
+                                    <span data-date="1698098400000" class="datepicker-cell day">24</span>
+                                    <span data-date="1698184800000" class="datepicker-cell day">25</span>
+                                    <span data-date="1698271200000" class="datepicker-cell day">26</span>
+                                    <span data-date="1698357600000" class="datepicker-cell day">27</span>
+                                    <span data-date="1698444000000" class="datepicker-cell day">28</span>
+                                    <span data-date="1698530400000" class="datepicker-cell day">29</span>
+                                    <span data-date="1698620400000" class="datepicker-cell day">30</span>
+                                    <span data-date="1698706800000" class="datepicker-cell day">31</span>
+                                    <span data-date="1698793200000" class="datepicker-cell day next">1</span>
+                                    <span data-date="1698879600000" class="datepicker-cell day next">2</span>
+                                    <span data-date="1698966000000" class="datepicker-cell day next">3</span>
+                                    <span data-date="1699052400000" class="datepicker-cell day next">4</span>
+                                    <span data-date="1699138800000" class="datepicker-cell day next">5</span>
+                                    <span data-date="1699225200000" class="datepicker-cell day next">6</span>
+                                    <span data-date="1699311600000" class="datepicker-cell day next">7</span>
+                                    <span data-date="1699398000000" class="datepicker-cell day next">8</span>
+                                    <span data-date="1699484400000" class="datepicker-cell day next">9</span>
+                                    <span data-date="1699570800000" class="datepicker-cell day next">10</span>
+                                    <span data-date="1699657200000" class="datepicker-cell day next">11</span>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+                     <div class="datepicker-footer">
+                         <div class="datepicker-controls">
+                             <button type="button" class="button today-button today-btn" tabindex="-1" style="display: none;">Today</button>
+                             <button type="button" class="button clear-button clear-btn" tabindex="-1" style="display: none;">Clear</button>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+
+    <script src="vendor/codalia/c.datepicker.js"></script>
+    <script src="js/datepicker.js"></script>
+</body>
+
+</html>
