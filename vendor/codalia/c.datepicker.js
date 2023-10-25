@@ -47,24 +47,24 @@ const C_Datepicker = (function() {
         // Loop through the days of the current month.
         for (let i = 0; i < nbDays; i++) {
             let date = i + 1;
-            let zero = (date < 10) ? '0' : '';
+            let zerofill = (date < 10) ? '0' : '';
             // 
-            let dayDate = _currentDate.slice(0, -2) + zero + date;
+            let dayDate = _currentDate.slice(0, -2) + zerofill + date;
             let today = (dayDate === _today) ? true : false;
             dates.push({'date': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'current', 'today': today});
         }
 
-        const daysInNextMonth = (_nbRows * _nbColumns) - dates.length;
+        const nbDaysInNextMonth = (_nbRows * _nbColumns) - dates.length;
         let nextMonth = _getNextMonth();
 
         // Loop through the days of the next month.
-        for (let i = 0; i < daysInNextMonth; i++) {
+        for (let i = 0; i < nbDaysInNextMonth; i++) {
             let date = i + 1;
-            let zero = (date < 10) ? '0' : '';
-            let dayDate = nextMonth.slice(0, -2) + zero + date;
+            let zerofill = (date < 10) ? '0' : '';
+            let dayDate = nextMonth.slice(0, -2) + zerofill + date;
             dates.push({'date': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'next'});
 
-            if (i > daysInNextMonth) {
+            if (i > nbDaysInNextMonth) {
                 break;
             }
         }
@@ -81,21 +81,17 @@ const C_Datepicker = (function() {
 
     function _getPreviousMonth() {
         const currentDate = dayjs(_currentDate);
-        const previousMonth = currentDate.add(1, 'month');
+        const previousMonth = currentDate.subtract(1, 'month');
 
         return previousMonth.format('YYYY-MM-DD');
     }
 
-    function _nextMonth() {
-        const currentDate = dayjs(_currentDate);
-        const nextMonth = currentDate.add(1, 'month');
-        _currentDate = nextMonth.format('YYYY-MM-DD');
+    function _toNextMonth() {
+        _currentDate = _getNextMonth();
     }
 
-    function _previousMonth() {
-        const currentDate = dayjs(_currentDate);
-        const previousMonth = currentDate.add(1, 'month');
-        _currentDate = previousMonth.format('YYYY-MM-DD');
+    function _toPreviousMonth() {
+        _currentDate = _getPreviousMonth();
     }
 
     function _renderCalendar() {
