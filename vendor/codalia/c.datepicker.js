@@ -39,7 +39,7 @@ const C_Datepicker = (function() {
 
                 if (i > (daysInPreviousMonth - nbLastDays)) {
                   let dayDate = previousMonth.slice(0, -2) + date;
-                  dates.push({'date': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'previous'});
+                  dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'previous'});
                 }
             }
         }
@@ -48,12 +48,15 @@ const C_Datepicker = (function() {
         for (let i = 0; i < nbDays; i++) {
             let date = i + 1;
             let zerofill = (date < 10) ? '0' : '';
-            // 
+            // Generate date for each day of the month.
             let dayDate = _currentDate.slice(0, -2) + zerofill + date;
+            // Check if the date is today.
             let today = (dayDate === _today) ? true : false;
-            dates.push({'date': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'current', 'today': today});
+            // Store the date data.
+            dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'current', 'today': today});
         }
 
+        // Compute the number of days needed to fill the calendar grid.
         const nbDaysInNextMonth = (_nbRows * _nbColumns) - dates.length;
         let nextMonth = _getNextMonth();
 
@@ -62,8 +65,10 @@ const C_Datepicker = (function() {
             let date = i + 1;
             let zerofill = (date < 10) ? '0' : '';
             let dayDate = nextMonth.slice(0, -2) + zerofill + date;
-            dates.push({'date': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'next'});
+            let today = (dayDate === _today) ? true : false;
+            dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'next', 'today': today});
 
+            // The calendar grid is filled.
             if (i > nbDaysInNextMonth) {
                 break;
             }
@@ -95,13 +100,13 @@ const C_Datepicker = (function() {
     }
 
     function _renderCalendar() {
-        let html = `<div class="datepicker datepicker-dropdown datepicker-orient-left datepicker-orient-bottom" style="left: 0px; top: 40px;">`+
+        let html = `<div class="datepicker datepicker-dropdown datepicker-orient-left datepicker-orient-bottom">`+
                    `<div class="datepicker-picker">`+`<div class="datepicker-header">`+`<div class="datepicker-title" style="display: none;"></div>`+
                    `<div class="datepicker-controls">`+`<button type="button" class="button prev-button prev-btn" tabindex="-1">«</button>`+
                    `<button type="button" class="button view-switch" tabindex="-1">October 2023</button>`+
                    `<button type="button" class="button next-button next-btn" tabindex="-1">»</button>`+`</div></div>`+
                    `<div class="datepicker-main"><div class="datepicker-view"><div class="days"><div class="days-of-week">`;
-//console.log(Array.isArray(_getDaysOfWeek()));
+
         _getDaysOfWeek().forEach((day) => {
             html += `<span class="dow">`+day+`</span>`;
         });
@@ -109,24 +114,53 @@ const C_Datepicker = (function() {
         html += `</div><div class="datepicker-grid">`;
 
         const dates = _getDates();
-        console.log(dates);
+//console.log(dates);
+        dates.forEach((date) => {
+            let extra = (date.month != 'current') ? date.month : ''; 
+            extra += (date.today) ? ' today' : ''; 
+            html += `<span data-date="`+date.timestamp+`" class="datepicker-cell day `+extra+`">`+date.text+`</span>`;
+        });
+
+        html += `</div></div></div></div>`+
+                `<div class="datepicker-footer"><div class="datepicker-controls">`+
+                `<button type="button" class="btn btn-success" tabindex="-1" >Today</button>`+
+                `<button type="button" class="btn btn-info" tabindex="-1" >Clear</button>`+
+                `<button type="button" class="btn btn-danger cancel" tabindex="-1" >Cancel</button>`+
+                `</div></div></div>`;
 
         _calendar = document.createElement('div');
-        _calendar.setAttribute('class', 'form-control');
-        const message = document.createTextNode('CALENDAR');
-        _calendar.appendChild(message);
+        //_calendar.setAttribute('class', 'form-control');
+        _calendar.insertAdjacentHTML('afterbegin', html);
         _elem.insertAdjacentElement('afterend', _calendar);
+//_calendar.style.border = 'solid';
+        //_calendar.querySelector('.datepicker-grid').style.border = 'solid';
     }
 
     const _Datepicker = function(elem) {
+        //
+        dayjs.extend(window.dayjs_plugin_localeData);
+
+        //
         _elem = elem;
+        //
         elem.datepicker = this;
+
         elem.addEventListener('click', function() {
             this.datepicker.showCalendar(); 
         });
 
         _renderCalendar();
         this.hideCalendar();
+
+        _calendar.querySelectorAll('.day').forEach((day) => { 
+            day.addEventListener('click', function() {
+                  console.log(this);
+            });
+        });
+
+        _calendar.querySelector('.cancel').addEventListener('click', function() {
+            _elem.datepicker.hideCalendar();
+        });
     };
 
     _Datepicker.prototype = {
@@ -140,9 +174,13 @@ const C_Datepicker = (function() {
         },
 
         hideCalendar: function() {
+            _elem.datepicker.cbFunc();
             console.log('hideCalendar');
             _calendar.style.display = 'none';
-        }
+        },
+
+        cbFunc: function() {
+        } 
     };
 
     // Returns a init property that returns the "constructor" function.
