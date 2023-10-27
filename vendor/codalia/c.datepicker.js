@@ -7,6 +7,11 @@ const C_Datepicker = (function() {
     let _today = dayjs().format('YYYY-MM-DD');
     const _nbRows = 6;
     const _nbColumns = 7;
+    const _params = {};
+
+    function _setParams(params) {
+        _params.autoHide = params.autoHide === undefined ? false : params.autoHide;
+    }
 
     function _getDaysOfWeek() {
         return dayjs.weekdaysShort();
@@ -77,6 +82,10 @@ const C_Datepicker = (function() {
         return dates;
     }
 
+    function _setDate() {
+        console.log('_setDate');
+    }
+
     function _getNextMonth() {
         const currentDate = dayjs(_currentDate);
         const nextMonth = currentDate.add(1, 'month');
@@ -136,7 +145,8 @@ const C_Datepicker = (function() {
         //_calendar.querySelector('.datepicker-grid').style.border = 'solid';
     }
 
-    const _Datepicker = function(elem) {
+    const _Datepicker = function(elem, params) {
+        _setParams(params);
         //
         dayjs.extend(window.dayjs_plugin_localeData);
 
@@ -144,6 +154,7 @@ const C_Datepicker = (function() {
         _elem = elem;
         //
         elem.datepicker = this;
+
 
         elem.addEventListener('click', function() {
             this.datepicker.showCalendar(); 
@@ -154,7 +165,11 @@ const C_Datepicker = (function() {
 
         _calendar.querySelectorAll('.day').forEach((day) => { 
             day.addEventListener('click', function() {
-                  console.log(this);
+                _setDate();
+
+                if (_params.autoHide) {
+                    _elem.datepicker.hideCalendar();
+                }
             });
         });
 
@@ -174,12 +189,12 @@ const C_Datepicker = (function() {
         },
 
         hideCalendar: function() {
-            _elem.datepicker.cbFunc();
+            _elem.datepicker.beforeHideCalendar();
             console.log('hideCalendar');
             _calendar.style.display = 'none';
         },
 
-        cbFunc: function() {
+        beforeHideCalendar: function() {
         } 
     };
 

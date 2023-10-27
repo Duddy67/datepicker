@@ -18,10 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }*/
 
     let elem = document.getElementById('date');
-    new C_Datepicker.init(elem);
+    new C_Datepicker.init(elem, {
+        'autoHide': true,
+    });
 
     //console.log(elem.datepicker.current());
-    elem.datepicker.cbFunc = function() {
+    elem.datepicker.beforeHideCalendar = function() {
          console.log('cbFunc');
     }
 });
