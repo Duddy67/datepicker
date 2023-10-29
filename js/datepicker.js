@@ -13,17 +13,21 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log(b.format('YYYY-MM-DD'));
     console.log(dayjs('2023-09-21').format('YYYY-MM')+'-01');*/
 
-    /*const beforeHideCalendar = function() {
-        console.log('beforeHideCalendar');
-    }*/
+    console.log(dayjs().format('YYYY-MM-DD HH:mm'));
 
     let elem = document.getElementById('date');
     new C_Datepicker.init(elem, {
         'autoHide': true,
+        'format': 'ddd D MMM YYYY',
+        'timePicker': true,
     });
 
     //console.log(elem.datepicker.current());
     elem.datepicker.beforeHideCalendar = function() {
-         console.log('cbFunc');
-    }
+         console.log('beforeHideCalendar');
+    };
+
+    elem.datepicker.afterSetDate = function(timestamp) {
+         console.log('afterSetDate '+dayjs(timestamp).format('ddd D MMM YYYY'));
+    };
 });

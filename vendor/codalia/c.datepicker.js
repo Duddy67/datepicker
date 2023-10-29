@@ -1,16 +1,24 @@
 // Anonymous function with namespace.
 const C_Datepicker = (function() {
 
-    let _elem = null;
-    let _calendar = null;
-    let _currentDate = dayjs().format('YYYY-MM-DD');
-    let _today = dayjs().format('YYYY-MM-DD');
     const _nbRows = 6;
     const _nbColumns = 7;
     const _params = {};
+    const _minutes = 59;
+    const _hours = 23;
+    let _elem = null;
+    let _calendar = null;
+    let _selectedDate = null;
+    let _currentDate = dayjs().format('YYYY-MM-DD');
+    let _today = dayjs().format('YYYY-MM-DD');
 
     function _setParams(params) {
         _params.autoHide = params.autoHide === undefined ? false : params.autoHide;
+        _params.timePicker = params.timePicker === undefined ? false : params.timePicker;
+        // Set the default format.
+        let format = _params.timePicker ? 'YYYY-MM-DD HH:mm' : 'YYYY-MM-DD';
+        _params.format = params.format === undefined ? format : params.format;
+        _params.showDropdowns = params.showDropdowns === undefined ? false : params.showDropdowns;
     }
 
     function _getDaysOfWeek() {
@@ -70,7 +78,7 @@ const C_Datepicker = (function() {
             let date = i + 1;
             let zerofill = (date < 10) ? '0' : '';
             let dayDate = nextMonth.slice(0, -2) + zerofill + date;
-            let today = (dayDate === _today) ? true : false;
+            let today = dayDate === _today ? true : false;
             dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'next', 'today': today});
 
             // The calendar grid is filled.
@@ -82,8 +90,12 @@ const C_Datepicker = (function() {
         return dates;
     }
 
-    function _setDate() {
-        console.log('_setDate');
+    function _setDate(timestamp) {
+        // Make sure the given timestamp is of the type number. (Note: add a plus sign to convert into number).
+        timestamp = typeof timestamp != 'number' ? +timestamp : timestamp;
+    console.log('_setDate '+dayjs(timestamp).format('YYYY-MM-DD'));
+        _elem.value = dayjs(timestamp).format(_params.format);
+        _elem.datepicker.afterSetDate(timestamp);
     }
 
     function _getNextMonth() {
@@ -102,17 +114,19 @@ const C_Datepicker = (function() {
 
     function _toNextMonth() {
         _currentDate = _getNextMonth();
+console.log(_currentDate);
     }
 
     function _toPreviousMonth() {
         _currentDate = _getPreviousMonth();
+console.log(_currentDate);
     }
 
     function _renderCalendar() {
         let html = `<div class="datepicker datepicker-dropdown datepicker-orient-left datepicker-orient-bottom">`+
                    `<div class="datepicker-picker">`+`<div class="datepicker-header">`+`<div class="datepicker-title" style="display: none;"></div>`+
                    `<div class="datepicker-controls">`+`<button type="button" class="button prev-button prev-btn" tabindex="-1">«</button>`+
-                   `<button type="button" class="button view-switch" tabindex="-1">October 2023</button>`+
+                   `<button type="button" class="button view-switch" tabindex="-1">`+dayjs(_currentDate).format('MMMM YYYY')+`</button>`+
                    `<button type="button" class="button next-button next-btn" tabindex="-1">»</button>`+`</div></div>`+
                    `<div class="datepicker-main"><div class="datepicker-view"><div class="days"><div class="days-of-week">`;
 
@@ -123,26 +137,60 @@ const C_Datepicker = (function() {
         html += `</div><div class="datepicker-grid">`;
 
         const dates = _getDates();
-//console.log(dates);
         dates.forEach((date) => {
             let extra = (date.month != 'current') ? date.month : ''; 
             extra += (date.today) ? ' today' : ''; 
-            html += `<span data-date="`+date.timestamp+`" class="datepicker-cell day `+extra+`">`+date.text+`</span>`;
+            html += `<span data-date="`+date.timestamp+`" class="datepicker-cell date `+extra+`">`+date.text+`</span>`;
         });
 
         html += `</div></div></div></div>`+
-                `<div class="datepicker-footer"><div class="datepicker-controls">`+
+                `<div class="datepicker-footer">`;
+
+        // Build the time drop down lists.
+        if (_params.timePicker) {
+            let time = dayjs().format('H:m');
+            time = time.split(':');
+
+            html += `<div class="datepicker-time"><select name="hours" class="hours">`;
+
+            for (let i = 0; i < _hours; i++) {
+                let selected = i == time[0] ? 'selected' : '';
+                html += `<option value="`+i+`" `+selected+`>`+i+`</option>`;
+            }
+
+            html += `</select><select name="minutes" class="minutes">`;
+
+            for (let i = 0; i < _minutes; i++) {
+                let selected = i == time[1] ? 'selected' : '';
+                html += `<option value="`+i+`" `+selected+`>`+i+`</option>`;
+            }
+
+            html += `</select></div>`;
+
+        }
+
+        html += `<div class="datepicker-controls">`+
                 `<button type="button" class="btn btn-success" tabindex="-1" >Today</button>`+
                 `<button type="button" class="btn btn-info" tabindex="-1" >Clear</button>`+
                 `<button type="button" class="btn btn-danger cancel" tabindex="-1" >Cancel</button>`+
                 `</div></div></div>`;
 
-        _calendar = document.createElement('div');
-        //_calendar.setAttribute('class', 'form-control');
-        _calendar.insertAdjacentHTML('afterbegin', html);
-        _elem.insertAdjacentElement('afterend', _calendar);
-//_calendar.style.border = 'solid';
-        //_calendar.querySelector('.datepicker-grid').style.border = 'solid';
+        return html;
+    }
+
+    function _updateCalendar() {
+        _calendar.querySelector('.view-switch').innerHTML = dayjs(_currentDate).format('MMMM YYYY');
+
+        const dates = _getDates();
+        let grid = '';
+
+        dates.forEach((date) => {
+            let extra = (date.month != 'current') ? date.month : ''; 
+            extra += (date.today) ? ' today' : ''; 
+            grid += `<span data-date="`+date.timestamp+`" class="datepicker-cell date `+extra+`">`+date.text+`</span>`;
+        });
+
+        _calendar.querySelector('.datepicker-grid').innerHTML = grid;
     }
 
     const _Datepicker = function(elem, params) {
@@ -160,21 +208,40 @@ const C_Datepicker = (function() {
             this.datepicker.showCalendar(); 
         });
 
-        _renderCalendar();
+        // Create a div container for the calendar.
+        _calendar = document.createElement('div');
+        // Insert the calendar in the container.
+        _calendar.insertAdjacentHTML('afterbegin', _renderCalendar());
+        // Insert the div container after the given element.
+        _elem.insertAdjacentElement('afterend', _calendar);
+
         this.hideCalendar();
 
-        _calendar.querySelectorAll('.day').forEach((day) => { 
-            day.addEventListener('click', function() {
-                _setDate();
+        // Use event delegation to check whenever a date in the calendar grid is clicked.
+        document.body.addEventListener('click', function (evt) {
+            if (evt.target.classList.contains('date')) {
+                _setDate(evt.target.dataset.date);
 
                 if (_params.autoHide) {
                     _elem.datepicker.hideCalendar();
                 }
-            });
+            }
+
         });
 
         _calendar.querySelector('.cancel').addEventListener('click', function() {
             _elem.datepicker.hideCalendar();
+        });
+
+        _calendar.querySelector('.prev-button').addEventListener('click', function() {
+            _toPreviousMonth();
+            _updateCalendar();
+        });
+
+        _calendar.querySelector('.next-button').addEventListener('click', function() {
+            console.log('next month');
+            _toNextMonth();
+            _updateCalendar();
         });
     };
 
@@ -190,11 +257,15 @@ const C_Datepicker = (function() {
 
         hideCalendar: function() {
             _elem.datepicker.beforeHideCalendar();
-            console.log('hideCalendar');
             _calendar.style.display = 'none';
         },
 
+        afterSetDate: function(timestamp) {
+            // To be overriden.
+        }, 
+
         beforeHideCalendar: function() {
+            // To be overriden.
         } 
     };
 

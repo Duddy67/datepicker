@@ -166,7 +166,7 @@
   height: 2.25rem;
 }
 
-.datepicker-cell:not(.day) {
+.datepicker-cell:not(.date) {
   flex-basis: 25%;
   height: 4.5rem;
 }
@@ -191,7 +191,7 @@
   color: hsl(0, 0%, 86%);
 }
 
-.datepicker-cell.prev:not(.disabled),
+.datepicker-cell.previous:not(.disabled),
 .datepicker-cell.next:not(.disabled) {
   color: hsl(0, 0%, 48%);
 }
