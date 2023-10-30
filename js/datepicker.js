@@ -13,13 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log(b.format('YYYY-MM-DD'));
     console.log(dayjs('2023-09-21').format('YYYY-MM')+'-01');*/
 
-    console.log(dayjs().format('YYYY-MM-DD HH:mm'));
+    console.log(dayjs('2023-09-02').format('M'));
 
     let elem = document.getElementById('date');
     new C_Datepicker.init(elem, {
         'autoHide': true,
         'format': 'ddd D MMM YYYY',
         'timePicker': true,
+        'showDropdowns': true,
+        //'timePicker24Hour': true,
     });
 
     //console.log(elem.datepicker.current());

@@ -51,6 +51,11 @@
   display: flex;
 }
 
+.datepicker-time {
+  display: flex;
+  margin: 0.5rem;
+}
+
 .datepicker-header .datepicker-controls {
   padding: 2px 2px 0;
 }
@@ -114,6 +119,21 @@
   display: flex;
   flex-direction: column;
   flex: auto;
+}
+
+.datepicker .hours {
+  display: block;
+  margin: auto;
+}
+
+.datepicker .minutes {
+  display: block;
+  margin: auto;
+}
+
+.datepicker .meridiems {
+  display: block;
+  margin: auto;
 }
 
 .datepicker .days-of-week {
