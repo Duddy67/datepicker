@@ -24,6 +24,8 @@ const C_Datepicker = (function() {
         _params.timePicker24Hour = params.timePicker24Hour === undefined ? false : params.timePicker24Hour;
         _params.minYear = params.minYear === undefined ? 100 : params.minYear;
         _params.maxYear = params.maxYear === undefined ? 100 : params.maxYear;
+        _params.minDate = params.minDate === undefined ? null : params.minDate;
+        _params.maxDate = params.maxDate === undefined ? null : params.maxDate;
     }
 
     function _setMonths() {
@@ -91,7 +93,9 @@ const C_Datepicker = (function() {
 
                 if (i > (daysInPreviousMonth - nbLastDays)) {
                   let dayDate = previousMonth.slice(0, -2) + date;
-                  dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'previous'});
+                  let today = (dayDate === _today) ? true : false;
+                  let selected = (dayDate === _selectedDate) ? true : false;
+                  dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'previous', 'today': today, 'selected': selected});
                 }
             }
         }
@@ -104,8 +108,9 @@ const C_Datepicker = (function() {
             let dayDate = _currentDate.slice(0, -2) + zerofill + date;
             // Check if the date is today.
             let today = (dayDate === _today) ? true : false;
+            let selected = (dayDate === _selectedDate) ? true : false;
             // Store the date data.
-            dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'current', 'today': today});
+            dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'current', 'today': today, 'selected': selected});
         }
 
         // Compute the number of days needed to fill the calendar grid.
@@ -118,7 +123,8 @@ const C_Datepicker = (function() {
             let zerofill = (date < 10) ? '0' : '';
             let dayDate = nextMonth.slice(0, -2) + zerofill + date;
             let today = dayDate === _today ? true : false;
-            dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'next', 'today': today});
+            let selected = (dayDate === _selectedDate) ? true : false;
+            dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'next', 'today': today, 'selected': selected});
 
             // The calendar grid is filled.
             if (i > nbDaysInNextMonth) {
@@ -263,6 +269,7 @@ console.log(_currentDate);
     }
 
     function _updateCalendar() {
+        // Update the date drop down lists.
         if (_params.showDropdowns) {
             // Unselect the old selected month.
             _calendar.querySelector('.months').selected = false;
@@ -276,9 +283,12 @@ console.log(_currentDate);
             const year = dayjs(_currentDate).format('YYYY');
             _calendar.querySelector('.years option[value="'+ year +'"]').selected = true;
         }
+        // Update the text date.
         else {
             _calendar.querySelector('.view-switch').innerHTML = dayjs(_currentDate).format('MMMM YYYY');
         }
+
+        // Update the calendar grid.
 
         const dates = _getDates();
         let grid = '';
@@ -286,6 +296,7 @@ console.log(_currentDate);
         dates.forEach((date) => {
             let extra = (date.month != 'current') ? date.month : ''; 
             extra += (date.today) ? ' today' : ''; 
+            extra += (date.selected) ? ' selected' : ''; 
             grid += `<span data-date="`+date.timestamp+`" class="datepicker-cell date `+extra+`">`+date.text+`</span>`;
         });
 
@@ -319,8 +330,8 @@ console.log(_currentDate);
 
         this.hideCalendar();
 
-        // Use event delegation to check whenever a date in the calendar grid is clicked.
-        document.body.addEventListener('click', function (evt) {
+        // Delegate the click event to the calendar element to check whenever a date in the grid is clicked.
+        _calendar.addEventListener('click', function (evt) {
             if (evt.target.classList.contains('date')) {
                 _setDate(evt.target.dataset.date);
 
@@ -333,10 +344,20 @@ console.log(_currentDate);
 
                 // Add the class to the newly selected date.
                 evt.target.classList.add('selected');
+                //
+                _selectedDate = dayjs(+evt.target.dataset.date).format("YYYY-MM-DD");
 
                 if (_params.autoHide) {
                     _elem.datepicker.hideCalendar();
                 }
+            }
+        });
+
+        // Hide the datepicker when the user clicks outside the calendar.
+        document.addEventListener('click', function (evt) {
+            // The clicked target is not the input host and is not contained into the calendar element.
+            if (evt.target !== _elem && !_calendar.contains(evt.target)) {
+                _elem.datepicker.hideCalendar();
             }
         });
 
