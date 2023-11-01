@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log(b.format('YYYY-MM-DD'));
     console.log(dayjs('2023-09-21').format('YYYY-MM')+'-01');*/
 
-    console.log(dayjs('2023-09-02').format('M'));
+    console.log(dayjs('2010-01-01').isBefore(dayjs('2011-01-01')));
 
     let elem = document.getElementById('date');
     new C_Datepicker.init(elem, {
@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'timePicker': true,
         'showDropdowns': true,
         //'timePicker24Hour': true,
+        'minDate': '2023-11-10',
+        'maxDate': '2023-11-30',
     });
 
     //console.log(elem.datepicker.current());
