@@ -186,7 +186,7 @@
   height: 2.25rem;
 }
 
-.datepicker-cell:not(.date) {
+.datepicker-cell:not(.day) {
   flex-basis: 25%;
   height: 4.5rem;
 }

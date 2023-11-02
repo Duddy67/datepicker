@@ -8,11 +8,11 @@ const C_Datepicker = (function() {
     const _hours = 23;
     const _months = [];
     const _years = [];
+    const _today = dayjs().format('YYYY-MM-DD');
     let _elem = null;
     let _calendar = null;
-    let _selectedDate = null;
-    let _currentDate = dayjs().format('YYYY-MM-DD');
-    let _today = dayjs().format('YYYY-MM-DD');
+    let _selectedDay = null;
+    let _currentDate = dayjs().format('YYYY-MM-DD'); //  _currentGrid  _currentCalendarGrid _currentCalendarMonth
 
     function _setParams(params) {
         _params.autoHide = params.autoHide === undefined ? false : params.autoHide;
@@ -66,9 +66,12 @@ const C_Datepicker = (function() {
         //console.log('_changeYear '+_currentDate);
     }
 
-    function _getDates() {
-        const dates = [];
-        // Get the number of days in the current month.
+    /*
+     * Computes the days contained in the grid for a given month.
+     */
+    function _getDays() {
+        const days = [];
+        // Get the number of days in the month of the current date.
         const nbDays = dayjs(_currentDate).daysInMonth();
 
         // Figure out what is the first day of the current month.
@@ -89,46 +92,29 @@ const C_Datepicker = (function() {
 
             // Loop through the days of the previous month.
             for (let i = 0; i < daysInPreviousMonth; i++) {
-                let date = i + 1;
+                let dayNumber = i + 1;
 
                 if (i > (daysInPreviousMonth - nbLastDays)) {
-                  let dayDate = previousMonth.slice(0, -2) + date;
-                  let today = (dayDate === _today) ? true : false;
-                  let selected = (dayDate === _selectedDate) ? true : false;
-                  let disabled = _params.minDate && dayjs(dayDate).isBefore(_params.minDate) ? true : false;
-                  dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'previous', 'today': today, 'selected': selected, 'disabled': disabled});
+                    days.push(_getDayObject(dayNumber, previousMonth, 'previous'));
                 }
             }
         }
 
         // Loop through the days of the current month.
         for (let i = 0; i < nbDays; i++) {
-            let date = i + 1;
-            let zerofill = (date < 10) ? '0' : '';
-            // Generate date for each day of the month.
-            let dayDate = _currentDate.slice(0, -2) + zerofill + date;
-            // Check if the date is today.
-            let today = (dayDate === _today) ? true : false;
-            let selected = (dayDate === _selectedDate) ? true : false;
-            // Check for the possible min and max dates and set the disabled attribute accordingly. 
-            let disabled = (_params.minDate && dayjs(dayDate).isBefore(_params.minDate)) || (_params.maxDate && dayjs(_params.maxDate).isBefore(dayDate)) ? true : false;
-            // Store the date data.
-            dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'current', 'today': today, 'selected': selected, 'disabled': disabled});
+            let dayNumber = i + 1;
+            days.push(_getDayObject(dayNumber, _currentDate, 'current'));
         }
 
         // Compute the number of days needed to fill the calendar grid.
-        const nbDaysInNextMonth = (_nbRows * _nbColumns) - dates.length;
+        const nbDaysInNextMonth = (_nbRows * _nbColumns) - days.length;
         let nextMonth = _getNextMonth();
 
         // Loop through the days of the next month.
+        // Generate date for each day of the month.
         for (let i = 0; i < nbDaysInNextMonth; i++) {
-            let date = i + 1;
-            let zerofill = (date < 10) ? '0' : '';
-            let dayDate = nextMonth.slice(0, -2) + zerofill + date;
-            let today = dayDate === _today ? true : false;
-            let selected = (dayDate === _selectedDate) ? true : false;
-            let disabled = (_params.minDate && dayjs(dayDate).isBefore(_params.minDate)) || (_params.maxDate && dayjs(_params.maxDate).isBefore(dayDate)) ? true : false;
-            dates.push({'text': date, 'timestamp': dayjs(dayDate).valueOf(), 'month': 'next', 'today': today, 'selected': selected, 'disabled': disabled});
+            let dayNumber = i + 1;
+            days.push(_getDayObject(dayNumber, nextMonth, 'next'));
 
             // The calendar grid is filled.
             if (i > nbDaysInNextMonth) {
@@ -136,30 +122,21 @@ const C_Datepicker = (function() {
             }
         }
 
-        return dates;
+        return days;
     }
 
-    function _setDateObject(date, month) {
-        let zerofill = (date < 10) ? '0' : '';
-
-        // Generate date for each day of the month.
-        if (month == 'previous') {
-            let dayDate = _currentDate.slice(0, -2) + zerofill + date;
-        }
-
-        if (month == 'current') {
-            let dayDate = _currentDate.slice(0, -2) + zerofill + date;
-        }
-
-        if (month == 'next') {
-            let dayDate = nextMonth.slice(0, -2) + zerofill + date;
-        }
+    function _getDayObject(dayNumber, date, position) {
+        let zerofill = (dayNumber < 10) ? '0' : '';
+        // Replace the day number of the given date (ie: YYYY-MM-DD) with the given day number (ie: DD).
+        date = date.slice(0, -2) + zerofill + dayNumber;
 
         // Check if the date is today.
-        let today = (dayDate === _today) ? true : false;
-        let selected = (dayDate === _selectedDate) ? true : false;
+        let today = (date === _today) ? true : false;
+        let selected = (date === _selectedDay) ? true : false;
         // Check for the possible min and max dates and set the disabled attribute accordingly. 
-        let disabled = (_params.minDate && dayjs(dayDate).isBefore(_params.minDate)) || (_params.maxDate && dayjs(_params.maxDate).isBefore(dayDate)) ? true : false;
+        let disabled = (_params.minDate && dayjs(date).isBefore(_params.minDate)) || (_params.maxDate && dayjs(_params.maxDate).isBefore(date)) ? true : false;
+
+        return {'text': dayNumber, 'timestamp': dayjs(date).valueOf(), 'month': position, 'today': today, 'selected': selected, 'disabled': disabled};
     }
 
     function _setDates() {
@@ -244,13 +221,13 @@ console.log(_currentDate);
 
         html += `</div><div class="datepicker-grid">`;
 
-        const dates = _getDates();
-        dates.forEach((date) => {
-            let extra = (date.month != 'current') ? date.month : ''; 
-            extra += (date.today) ? ' today' : ''; 
-            extra += (date.selected) ? ' selected' : ''; 
-            extra += (date.disabled) ? ' disabled' : ''; 
-            html += `<span data-date="`+date.timestamp+`" class="datepicker-cell date `+extra+`">`+date.text+`</span>`;
+        const days = _getDays();
+        days.forEach((day) => {
+            let extra = (day.month != 'current') ? day.month : ''; 
+            extra += (day.today) ? ' today' : ''; 
+            extra += (day.selected) ? ' selected' : ''; 
+            extra += (day.disabled) ? ' disabled' : ''; 
+            html += `<span data-date="`+day.timestamp+`" class="datepicker-cell day `+extra+`">`+day.text+`</span>`;
         });
 
         html += `</div></div></div></div>`+
@@ -331,15 +308,15 @@ console.log(_currentDate);
 
         // Update the calendar grid.
 
-        const dates = _getDates();
+        const days = _getDays();
         let grid = '';
 
-        dates.forEach((date) => {
-            let extra = (date.month != 'current') ? date.month : ''; 
-            extra += (date.today) ? ' today' : ''; 
-            extra += (date.selected) ? ' selected' : ''; 
-            extra += (date.disabled) ? ' disabled' : ''; 
-            grid += `<span data-date="`+date.timestamp+`" class="datepicker-cell date `+extra+`">`+date.text+`</span>`;
+        days.forEach((day) => {
+            let extra = (day.month != 'current') ? day.month : ''; 
+            extra += (day.today) ? ' today' : ''; 
+            extra += (day.selected) ? ' selected' : ''; 
+            extra += (day.disabled) ? ' disabled' : ''; 
+            grid += `<span data-date="`+day.timestamp+`" class="datepicker-cell day `+extra+`">`+day.text+`</span>`;
         });
 
         _calendar.querySelector('.datepicker-grid').innerHTML = grid;
@@ -371,23 +348,23 @@ console.log(_currentDate);
 
         this.hideCalendar();
 
-        // Delegate the click event to the calendar element to check whenever a date in the grid is clicked.
+        // Delegate the click event to the calendar element to check whenever a day in the grid is clicked.
         _calendar.addEventListener('click', function (evt) {
-            // Check the date is not disabled
-            if (evt.target.classList.contains('date') && !evt.target.classList.contains('disabled')) {
+            // Check the day is not disabled
+            if (evt.target.classList.contains('day') && !evt.target.classList.contains('disabled')) {
                 _setDate(evt.target.dataset.date);
 
-                // unselect the old selected date.
+                // unselect the old selected day.
                 let old = document.querySelector('.selected');
 
                 if (old) {
                    old.classList.remove('selected');
                 }
 
-                // Add the class to the newly selected date.
+                // Add the class to the newly selected day.
                 evt.target.classList.add('selected');
-                // Update the selected date attribute.
-                _selectedDate = dayjs(+evt.target.dataset.date).format("YYYY-MM-DD");
+                // Update the selected day attribute.
+                _selectedDay = dayjs(+evt.target.dataset.date).format("YYYY-MM-DD");
 
                 if (_params.autoHide) {
                     _elem.datepicker.hideCalendar();

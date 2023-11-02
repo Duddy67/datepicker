@@ -22,8 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'timePicker': true,
         'showDropdowns': true,
         //'timePicker24Hour': true,
-        'minDate': '2023-11-10',
-        'maxDate': '2023-11-30',
+        //'minDate': '2023-11-10',
+        //'maxDate': '2023-11-30',
     });
 
     //console.log(elem.datepicker.current());
