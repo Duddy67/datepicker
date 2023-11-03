@@ -1,18 +1,23 @@
 // Anonymous function with namespace.
 const C_Datepicker = (function() {
 
-    const _nbRows = 6;
-    const _nbColumns = 7;
+    // Private attributes.
+
+    const _rows = 6;
+    const _columns = 7;
     const _params = {};
     const _minutes = 59;
     const _hours = 23;
     const _months = [];
     const _years = [];
     const _today = dayjs().format('YYYY-MM-DD');
-    let _elem = null;
+    // The input element that hosts the datepicker.
+    let _host = null;
     let _calendar = null;
     let _selectedDay = null;
-    let _currentDate = dayjs().format('YYYY-MM-DD'); //  _currentGrid  _currentCalendarGrid _currentCalendarMonth
+    let _currentDate = dayjs().format('YYYY-MM-DD'); //  _gridDate _yearMonthDate _calendarView _monthToDisplay _calendarDate 
+    // The month (along with the year for leap-years) that contains the days to display in the calendar grid.
+    let _monthToDisplay = dayjs().format('YYYY-MM'); 
 
     function _setParams(params) {
         _params.autoHide = params.autoHide === undefined ? false : params.autoHide;
@@ -27,6 +32,8 @@ const C_Datepicker = (function() {
         _params.minDate = params.minDate === undefined ? null : params.minDate;
         _params.maxDate = params.maxDate === undefined ? null : params.maxDate;
     }
+
+    // Private methods.
 
     function _setMonths() {
         if (_months.length === 0) {
@@ -55,14 +62,16 @@ const C_Datepicker = (function() {
         let selectedMonth = parseInt(_calendar.querySelector('.months').value) + 1;
         selectedMonth = selectedMonth < 10 ? '0'+selectedMonth : selectedMonth;
         // Update the current date with the newly selected month.
-        _currentDate = _currentDate.replace(/\-\d{2}\-/, '-' + selectedMonth + '-');
+        //_currentDate = _currentDate.replace(/\-\d{2}\-/, '-' + selectedMonth + '-');
+        _monthToDisplay = _monthToDisplay.slice(0, -2) + selectedMonth;
         //console.log('_changeMonth '+selectedMonth);
     }
 
     function _changeYear() {
         const selectedYear = _calendar.querySelector('.years').value;
         // Update the current date with the newly selected year.
-        _currentDate = selectedYear + _currentDate.slice(4);
+        //_currentDate = selectedYear + _currentDate.slice(4);
+        _monthToDisplay = selectedYear + _monthToDisplay.slice(4);
         //console.log('_changeYear '+_currentDate);
     }
 
@@ -72,12 +81,14 @@ const C_Datepicker = (function() {
     function _getDays() {
         const days = [];
         // Get the number of days in the month of the current date.
-        const nbDays = dayjs(_currentDate).daysInMonth();
+        //const nbDays = dayjs(_currentDate).daysInMonth();
+        const nbDays = dayjs(_monthToDisplay).daysInMonth();
 
         // Figure out what is the first day of the current month.
-         const firstDateOfTheMonth = _currentDate.slice(0, -2) + '01';
+        //const firstDateOfTheMonth = _currentDate.slice(0, -2) + '01';
         // Returns the day as a number ie: 0 => sunday, 1 => monday ... 6 => saturday. 
-        const firstDayOfTheMonth = dayjs(firstDateOfTheMonth).day();
+        //const firstDayOfTheMonth = dayjs(firstDateOfTheMonth).day();
+        const firstDayOfTheMonth = dayjs(_monthToDisplay + '-01').day();
 
         // The last days of the previous month have to be displayed.
         if (firstDayOfTheMonth > 0) {
@@ -87,7 +98,8 @@ const C_Datepicker = (function() {
                 nbLastDays++;
             }
 
-            let previousMonth = _getPreviousMonth();
+            //let previousMonth = _getPreviousMonth();
+            let previousMonth = dayjs(_monthToDisplay).subtract(1, 'month').format('YYYY-MM');
             const daysInPreviousMonth = dayjs(previousMonth).daysInMonth();
 
             // Loop through the days of the previous month.
@@ -103,12 +115,14 @@ const C_Datepicker = (function() {
         // Loop through the days of the current month.
         for (let i = 0; i < nbDays; i++) {
             let dayNumber = i + 1;
-            days.push(_getDayObject(dayNumber, _currentDate, 'current'));
+            //days.push(_getDayObject(dayNumber, _currentDate, 'current'));
+            days.push(_getDayObject(dayNumber, _monthToDisplay, 'current'));
         }
 
         // Compute the number of days needed to fill the calendar grid.
-        const nbDaysInNextMonth = (_nbRows * _nbColumns) - days.length;
-        let nextMonth = _getNextMonth();
+        const nbDaysInNextMonth = (_rows * _columns) - days.length;
+        //let nextMonth = _getNextMonth();
+        let nextMonth = dayjs(_monthToDisplay).add(1, 'month').format('YYYY-MM');
 
         // Loop through the days of the next month.
         // Generate date for each day of the month.
@@ -128,7 +142,8 @@ const C_Datepicker = (function() {
     function _getDayObject(dayNumber, date, position) {
         let zerofill = (dayNumber < 10) ? '0' : '';
         // Replace the day number of the given date (ie: YYYY-MM-DD) with the given day number (ie: DD).
-        date = date.slice(0, -2) + zerofill + dayNumber;
+        //date = date.slice(0, -2) + zerofill + dayNumber; // _yearMonth
+        date = date + '-' + zerofill + dayNumber;
 
         // Check if the date is today.
         let today = (date === _today) ? true : false;
@@ -153,10 +168,9 @@ const C_Datepicker = (function() {
     function _setDate(timestamp) {
         // Make sure the given timestamp is of the type number. (Note: add a plus sign to convert into number).
         timestamp = typeof timestamp != 'number' ? +timestamp : timestamp;
-    console.log('_setDate '+dayjs(timestamp).format('YYYY-MM-DD'));
-        _elem.value = dayjs(timestamp).format(_params.format);
+        _host.value = dayjs(timestamp).format(_params.format);
         // 
-        _elem.datepicker.afterSetDate(timestamp);
+        _host.datepicker.afterSetDate(timestamp);
     }
 
     function _getNextMonth() {
@@ -175,12 +189,10 @@ const C_Datepicker = (function() {
 
     function _toNextMonth() {
         _currentDate = _getNextMonth();
-console.log(_currentDate);
     }
 
     function _toPreviousMonth() {
         _currentDate = _getPreviousMonth();
-console.log(_currentDate);
     }
 
     function _renderCalendar() {
@@ -209,7 +221,8 @@ console.log(_currentDate);
             html += `</select></div>`;
         }
         else {
-            html += `<button type="button" class="button view-switch" tabindex="-1">`+dayjs(_currentDate).format('MMMM YYYY')+`</button>`;
+            //html += `<button type="button" class="button view-switch" tabindex="-1">`+dayjs(_currentDate).format('MMMM YYYY')+`</button>`;
+            html += `<button type="button" class="button view-switch" tabindex="-1">`+dayjs(_monthToDisplay).format('MMMM YYYY')+`</button>`;
         }
 
         html += `<button type="button" class="button next-button next-btn" tabindex="-1">»</button>`+`</div></div>`+
@@ -292,7 +305,8 @@ console.log(_currentDate);
             // Unselect the old selected month.
             _calendar.querySelector('.months').selected = false;
             // Get the numeric value of the current month (ie: 0 => January, 1 => February...).
-            const monthNumeric = dayjs(_currentDate).format('M') - 1;
+            //const monthNumeric = dayjs(_currentDate).format('M') - 1;
+            const monthNumeric = dayjs(_monthToDisplay).format('M') - 1;
             // Update the selected option.
             _calendar.querySelector('.months option[value="'+ monthNumeric +'"]').selected = true;
 
@@ -303,7 +317,8 @@ console.log(_currentDate);
         }
         // Update the text date.
         else {
-            _calendar.querySelector('.view-switch').innerHTML = dayjs(_currentDate).format('MMMM YYYY');
+            //_calendar.querySelector('.view-switch').innerHTML = dayjs(_currentDate).format('MMMM YYYY');
+            _calendar.querySelector('.view-switch').innerHTML = dayjs(_monthToDisplay).format('MMMM YYYY');
         }
 
         // Update the calendar grid.
@@ -328,7 +343,7 @@ console.log(_currentDate);
         dayjs.extend(window.dayjs_plugin_localeData);
 
         //
-        _elem = elem;
+        _host = elem;
         //
         elem.datepicker = this;
 
@@ -344,7 +359,7 @@ console.log(_currentDate);
         // Insert the calendar in the container.
         _calendar.insertAdjacentHTML('afterbegin', _renderCalendar());
         // Insert the div container after the given element.
-        _elem.insertAdjacentElement('afterend', _calendar);
+        _host.insertAdjacentElement('afterend', _calendar);
 
         this.hideCalendar();
 
@@ -367,7 +382,7 @@ console.log(_currentDate);
                 _selectedDay = dayjs(+evt.target.dataset.date).format("YYYY-MM-DD");
 
                 if (_params.autoHide) {
-                    _elem.datepicker.hideCalendar();
+                    _host.datepicker.hideCalendar();
                 }
             }
         });
@@ -375,8 +390,8 @@ console.log(_currentDate);
         // Hide the datepicker when the user clicks outside the calendar.
         document.addEventListener('click', function (evt) {
             // The clicked target is not the input host and is not contained into the calendar element.
-            if (evt.target !== _elem && !_calendar.contains(evt.target)) {
-                _elem.datepicker.hideCalendar();
+            if (evt.target !== _host && !_calendar.contains(evt.target)) {
+                _host.datepicker.hideCalendar();
             }
         });
 
@@ -393,17 +408,18 @@ console.log(_currentDate);
         }
 
         _calendar.querySelector('.cancel').addEventListener('click', function() {
-            _elem.datepicker.hideCalendar();
+            _host.datepicker.hideCalendar();
         });
 
         _calendar.querySelector('.prev-button').addEventListener('click', function() {
-            _toPreviousMonth();
+            //_toPreviousMonth();
+            _monthToDisplay = dayjs(_monthToDisplay).subtract(1, 'month').format('YYYY-MM');
             _updateCalendar();
         });
 
         _calendar.querySelector('.next-button').addEventListener('click', function() {
-            console.log('next month');
-            _toNextMonth();
+            //_toNextMonth();
+            _monthToDisplay = dayjs(_monthToDisplay).add(1, 'month').format('YYYY-MM');
             _updateCalendar();
         });
     };
@@ -419,7 +435,7 @@ console.log(_currentDate);
         },
 
         hideCalendar: function() {
-            _elem.datepicker.beforeHideCalendar();
+            _host.datepicker.beforeHideCalendar();
             _calendar.style.display = 'none';
         },
 

@@ -13,7 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log(b.format('YYYY-MM-DD'));
     console.log(dayjs('2023-09-21').format('YYYY-MM')+'-01');*/
 
-    console.log(dayjs('2010-01-01').isBefore(dayjs('2011-01-01')));
+    //console.log(dayjs('2010-01-01').isBefore(dayjs('2011-01-01')));
+    //console.log(dayjs('2023-01').subtract(1, 'month').format('YYYY-MM'));
+    console.log(dayjs('2019-02').daysInMonth());
 
     let elem = document.getElementById('date');
     new C_Datepicker.init(elem, {
