@@ -15,7 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     //console.log(dayjs('2010-01-01').isBefore(dayjs('2011-01-01')));
     //console.log(dayjs('2023-01').subtract(1, 'month').format('YYYY-MM'));
-    console.log(dayjs('2019-02').daysInMonth());
+    //console.log(dayjs('2019-02').daysInMonth());
+    let num = '01';
+    let next = Number(num) + 1;
+    next = next < 10 ? '0' + next : next;
+    let previous = dayjs('2023-5').subtract(1, 'month').format('YYYY-MM');
+    console.log(dayjs('2011-1-1').isSame(dayjs('2011-01-01', 'day')));
+    //console.log(dayjs('2023-10-2').format('YYYY-MM-DD'));
 
     let elem = document.getElementById('date');
     new C_Datepicker.init(elem, {
