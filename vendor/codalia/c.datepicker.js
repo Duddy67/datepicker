@@ -106,6 +106,7 @@ const C_Datepicker = (function() {
 
         // Generate date for each day in the grid.
         let datepicker;
+        let day;
 
         // The last days of the previous month have to be displayed.
         if (firstDayOfTheMonth > 0) {
@@ -121,18 +122,18 @@ const C_Datepicker = (function() {
 
             // Loop through the days of the previous month.
             for (let i = 0; i < daysInPreviousMonth; i++) {
-                let dayNumber = i + 1;
+                day = i + 1;
 
-                if (dayNumber > (daysInPreviousMonth - nbLastDays)) {
-                    days.push(_getDayObject(datepicker[0] + '-' + datepicker[1] + '-' + dayNumber, 'previous'));
+                if (day > (daysInPreviousMonth - nbLastDays)) {
+                    days.push(_getDayObject(datepicker[0] + '-' + datepicker[1] + '-' + day, 'previous'));
                 }
             }
         }
 
         // Loop through the days of the current month.
         for (let i = 0; i < nbDays; i++) {
-            let dayNumber = i + 1;
-            days.push(_getDayObject(_dpYear + '-' + _dpMonth + '-' + dayNumber, 'current'));
+            day = i + 1;
+            days.push(_getDayObject(_dpYear + '-' + _dpMonth + '-' + day, 'current'));
         }
 
         // Compute the number of days needed to fill the calendar grid.
@@ -142,8 +143,8 @@ const C_Datepicker = (function() {
 
         // Loop through the days of the next month.
         for (let i = 0; i < nbDaysInNextMonth; i++) {
-            let dayNumber = i + 1;
-            days.push(_getDayObject(datepicker[0] + '-' + datepicker[1] + '-' + dayNumber, 'next'));
+            day = i + 1;
+            days.push(_getDayObject(datepicker[0] + '-' + datepicker[1] + '-' + day, 'next'));
 
             // The calendar grid is filled.
             if (i > nbDaysInNextMonth) {
@@ -158,7 +159,6 @@ const C_Datepicker = (function() {
         // Get the day from the given date.
         let day = date.split('-')[2];
 
-        // Check if the date is today.
         let today = (date === _today) ? true : false;
         let selected = (date === _selectedDay) ? true : false;
         // Check for the possible min and max dates and set the disabled attribute accordingly. 
@@ -168,12 +168,16 @@ const C_Datepicker = (function() {
     }
 
     function _setDates() {
-        if (_params.minDate && days(_currentDate).isBefore(_params.minDate)) {
-            //_currentDate = _params.minDate;
+        if (_params.minDate && dayjs(_dpYear + '-' + _dpMonth).isBefore(_params.minDate)) {
+            let minDate = dayjs(_params.minDate).format('YYYY-M').split('-');
+            _dpYear = minDate[0];
+            _dpMonth = minDate[1];
         }
 
-        if (_params.maxDate && days(_params.maxDate).isBefore(_currentDate)) {
-            //_currentDate = _params.maxDate;
+        if (_params.maxDate && dayjs(_params.maxDate).isBefore(_dpYear + '-' + _dpMonth)) {
+            let maxDate = dayjs(_params.maxDate).format('YYYY-M').split('-');
+            _dpYear = maxDate[0];
+            _dpMonth = maxDate[1];
         }
 
     }
@@ -182,30 +186,32 @@ const C_Datepicker = (function() {
         // Make sure the given timestamp is of the type number. (Note: add a plus sign to convert into number).
         timestamp = typeof timestamp != 'number' ? + timestamp : timestamp;
         _host.value = dayjs(timestamp).format(_params.format);
-        // 
+        // Call the function allowing to perform some action after the date is set.
         _host.datepicker.afterSetDate(timestamp);
     }
 
     function _renderCalendar() {
         let html = `<div class="datepicker datepicker-dropdown datepicker-orient-left datepicker-orient-bottom">`+
                    `<div class="datepicker-picker">`+`<div class="datepicker-header">`+`<div class="datepicker-title" style="display: none;"></div>`+
-                   `<div class="datepicker-controls">`+`<button type="button" class="button prev-button prev-btn" tabindex="-1">«</button>`;
+                   `<div class="datepicker-controls">`;
 
-        // Build the date drop down lists.
+        // Check for the min date and disable the previous button accordingly.
+        let disabled = (_params.minDate && dayjs(dayjs(_dpYear + '-' + _dpMonth).subtract(1, 'month').format('YYYY-M')).isBefore(_params.minDate)) ? 'disabled' : '';
+        html += `<button type="button" class="button prev-button prev-btn" `+ disabled +` tabindex="-1">«</button>`;
+
+        // Build both the year and month drop down lists.
         if (_params.showDropdowns) {
             html += `<div class="datepicker-dropdown-date"><select name="months" class="months">`;
-            const currentMonth = dayjs().month();
 
             for (let i = 0; i < _months.length; i++) {
-                let selected = i == currentMonth ? 'selected' : '';
+                let selected = i == _dpMonth - 1 ? 'selected' : '';
                 html += `<option value="` + i + `" ` + selected + `>` + _months[i] + `</option>`;
             }
 
             html += `</select><select name="years" class="years">`;
-            const currentYear = dayjs().year();
 
             for (let i = 0; i < _years.length; i++) {
-                let selected = _years[i] == currentYear ? 'selected' : '';
+                let selected = _years[i] == _dpYear ? 'selected' : '';
                 html += `<option value="` + _years[i] + `" ` + selected + `>` + _years[i] + `</option>`;
             }
 
@@ -215,7 +221,9 @@ const C_Datepicker = (function() {
             html += `<button type="button" class="button view-switch" tabindex="-1">`+dayjs(_dpYear + '-' + _dpMonth).format('MMMM YYYY')+`</button>`;
         }
 
-        html += `<button type="button" class="button next-button next-btn" tabindex="-1">»</button>`+`</div></div>`+
+        // Check for the max date and disable the next button accordingly.
+        disabled = (_params.maxDate && dayjs(dayjs(_dpYear + '-' + _dpMonth).add(1, 'month').format('YYYY-M')).isAfter(_params.maxDate)) ? 'disabled' : '';
+        html += `<button type="button" class="button next-button next-btn" `+ disabled +` tabindex="-1">»</button>`+`</div></div>`+
                 `<div class="datepicker-main"><div class="datepicker-view"><div class="days"><div class="days-of-week">`;
 
         _getDaysOfWeek().forEach((day) => {
@@ -309,7 +317,7 @@ const C_Datepicker = (function() {
             _calendar.querySelector('.view-switch').innerHTML = dayjs(_dpYear + '-' + _dpMonth).format('MMMM YYYY');
         }
 
-        // Update the calendar grid.
+        // Update the datepicker grid.
 
         const days = _getDays();
         let grid = '';
@@ -323,6 +331,26 @@ const C_Datepicker = (function() {
         });
 
         _calendar.querySelector('.datepicker-grid').innerHTML = grid;
+
+        // Update both the previous and next buttons according to the month currently displayed in the datepicker. 
+
+        _calendar.querySelector('.prev-button').disabled = false;
+        if (_params.minDate) {
+            // Get the year and month of the min date to compare with the datepicker's.
+            let minDate = dayjs(_params.minDate).format('YYYY-M');
+            if (dayjs(dayjs(_dpYear + '-' + _dpMonth).subtract(1, 'month').format('YYYY-M')).isBefore(minDate)) {
+                _calendar.querySelector('.prev-button').disabled = true;
+            }
+        }
+
+        _calendar.querySelector('.next-button').disabled = false;
+        if (_params.maxDate) {
+            // Get the year and month of the min date to compare with the datepicker's.
+            let maxDate = dayjs(_params.maxDate).format('YYYY-M');
+            if (dayjs(dayjs(_dpYear + '-' + _dpMonth).add(1, 'month').format('YYYY-M')).isAfter(maxDate)) {
+                _calendar.querySelector('.next-button').disabled = true;
+            }
+        }
     }
 
     const _Datepicker = function(elem, params) {
@@ -341,6 +369,7 @@ const C_Datepicker = (function() {
 
         _setYears();
         _setMonths();
+        _setDates();
 
         // Create a div container for the calendar.
         _calendar = document.createElement('div');
@@ -400,13 +429,11 @@ const C_Datepicker = (function() {
         });
 
         _calendar.querySelector('.prev-button').addEventListener('click', function() {
-            //_monthToDisplay = dayjs(_monthToDisplay).subtract(1, 'month').format('YYYY-MM');
             _setToPrevMonth();
             _updateCalendar();
         });
 
         _calendar.querySelector('.next-button').addEventListener('click', function() {
-            //_monthToDisplay = dayjs(_monthToDisplay).add(1, 'month').format('YYYY-MM');
             _setToNextMonth();
             _updateCalendar();
         });
