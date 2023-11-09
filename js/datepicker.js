@@ -20,26 +20,44 @@ document.addEventListener('DOMContentLoaded', () => {
     let next = Number(num) + 1;
     next = next < 10 ? '0' + next : next;
     let previous = dayjs('2023-5').subtract(1, 'month').format('YYYY-MM');
-    console.log(dayjs('2011-1-1').isSame(dayjs('2011-01-01', 'day')));
+    //console.log(dayjs('2011-1-1').isSame(dayjs('2011-01-01', 'day')));
     //console.log(dayjs('2023-10-2').format('YYYY-MM-DD'));
+    console.log('day: '+dayjs('2023-10-2 15:54').format('D MM YYYY hh:mm'));
+
 
     let elem = document.getElementById('date');
-    new C_Datepicker.init(elem, {
+
+    const datepicker = new C_Datepicker.init(elem, {
         'autoHide': true,
         'format': 'ddd D MMM YYYY',
         'timePicker': true,
         'showDropdowns': true,
         //'timePicker24Hour': true,
-        'minDate': '2022-05-10',
-        'maxDate': '2022-07-30',
-    });
+        //'minDate': '2022-05-10',
+        //'maxDate': '2022-07-30',
+        'daysOfWeekDisabled': [3,4],
+        'datesDisabled': ['2023-05-05', '2023-08-15'],
+    }, afterInit);
+
+    function afterInit(datepicker) {
+         console.log(datepicker.host);
+         datepicker.setParam('timePicker', false);
+         datepicker.render();
+         datepicker.startDate('2023-11-27');
+         //elem.value = param;
+    }
+
+    window.addEventListener('afterSetDate', function(evt) {
+        //console.log(dayjs(evt.detail).format('YYYY-MM-DD'));
+        console.log(evt.detail.datepicker.host);
+    }, false);
 
     //console.log(elem.datepicker.current());
-    elem.datepicker.beforeHideCalendar = function() {
+    /*datepicker.beforeHideCalendar = function() {
          console.log('beforeHideCalendar');
-    };
+    };*/
 
-    elem.datepicker.afterSetDate = function(timestamp) {
+    /*datepicker.afterSetDate = function(timestamp) {
          console.log('afterSetDate '+dayjs(timestamp).format('ddd D MMM YYYY'));
-    };
+    };*/
 });

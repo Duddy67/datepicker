@@ -19,8 +19,9 @@ const C_Datepicker = (function() {
     let _dpYear = dayjs().format('YYYY'); // _dpYear  _dpMonth  _datepickerYear  _datepickerMonth
     // The month to use in the datepicker and that contains the days to display in the grid.
     let _dpMonth = dayjs().format('M');
+    let _afterSetDateEvent =  new CustomEvent('afterSetDate', {detail: {datepicker: null, timestamp: null, date: null, time: null}});
 
-    function _setParams(params) {
+    function _initParams(params) {
         _params.autoHide = params.autoHide === undefined ? false : params.autoHide;
         _params.timePicker = params.timePicker === undefined ? false : params.timePicker;
         // Set the default format.
@@ -32,6 +33,8 @@ const C_Datepicker = (function() {
         _params.maxYear = params.maxYear === undefined ? 100 : params.maxYear;
         _params.minDate = params.minDate === undefined ? null : params.minDate;
         _params.maxDate = params.maxDate === undefined ? null : params.maxDate;
+        _params.daysOfWeekDisabled = params.daysOfWeekDisabled === undefined ? null : params.daysOfWeekDisabled;
+        _params.datesDisabled = params.datesDisabled === undefined ? null : params.datesDisabled;
     }
 
     // Private methods.
@@ -163,6 +166,10 @@ const C_Datepicker = (function() {
         let selected = (date === _selectedDay) ? true : false;
         // Check for the possible min and max dates and set the disabled attribute accordingly. 
         let disabled = (_params.minDate && dayjs(date).isBefore(_params.minDate)) || (_params.maxDate && dayjs(_params.maxDate).isBefore(date)) ? true : false;
+        // Check again for the disabled days of the week (if any).
+        disabled = _params.daysOfWeekDisabled && _params.daysOfWeekDisabled.includes(dayjs(date).day()) ? true : disabled;
+        // Check again for the disabled dates (if any).
+        disabled = _params.datesDisabled && _params.datesDisabled.includes(dayjs(date).format('YYYY-MM-DD')) ? true : disabled;
 
         return {'text': day, 'timestamp': dayjs(date).valueOf(), 'month': position, 'today': today, 'selected': selected, 'disabled': disabled};
     }
@@ -179,7 +186,6 @@ const C_Datepicker = (function() {
             _dpYear = maxDate[0];
             _dpMonth = maxDate[1];
         }
-
     }
 
     function _setDate(timestamp) {
@@ -187,7 +193,11 @@ const C_Datepicker = (function() {
         timestamp = typeof timestamp != 'number' ? + timestamp : timestamp;
         _host.value = dayjs(timestamp).format(_params.format);
         // Call the function allowing to perform some action after the date is set.
-        _host.datepicker.afterSetDate(timestamp);
+        //_host.datepicker.afterSetDate(timestamp);
+
+        _afterSetDateEvent.detail.datepicker = _host.datepicker;
+        _afterSetDateEvent.detail.timestamp = timestamp;
+        window.dispatchEvent(_afterSetDateEvent);
     }
 
     function _renderCalendar() {
@@ -353,16 +363,18 @@ const C_Datepicker = (function() {
         }
     }
 
-    const _Datepicker = function(elem, params) {
-        _setParams(params);
+    const _Datepicker = function(elem, params, callback) {
+        _initParams(params);
         //
         dayjs.extend(window.dayjs_plugin_localeData);
-
         //
         _host = elem;
         //
         elem.datepicker = this;
 
+        this.host = elem;
+
+        // Listen to the click event in the host element.
         elem.addEventListener('click', function() {
             this.datepicker.showCalendar(); 
         });
@@ -380,7 +392,9 @@ const C_Datepicker = (function() {
 
         this.hideCalendar();
 
-        // Delegate the click event to the calendar element to check whenever a day in the grid is clicked.
+        _setDate(dayjs().valueOf());
+
+        // Delegate the click event to the calendar element to check whenever an element is clicked.
         _calendar.addEventListener('click', function (evt) {
             // Check the day is not disabled
             if (evt.target.classList.contains('day') && !evt.target.classList.contains('disabled')) {
@@ -396,11 +410,31 @@ const C_Datepicker = (function() {
                 // Add the class to the newly selected day.
                 evt.target.classList.add('selected');
                 // Update the selected day attribute.
-                _selectedDay = dayjs(+evt.target.dataset.date).format("YYYY-M-D");
+                _selectedDay = dayjs(+evt.target.dataset.date).format('YYYY-M-D');
 
                 if (_params.autoHide) {
                     _host.datepicker.hideCalendar();
                 }
+            }
+
+            if (evt.target.classList.contains('prev-button')) {
+                _setToPrevMonth();
+                _updateCalendar();
+            }
+
+            if (evt.target.classList.contains('next-button')) {
+                _setToNextMonth();
+                _updateCalendar();
+            }
+
+            if (_params.showDropdowns && evt.target.classList.contains('months')) {
+                _changeMonth();
+                _updateCalendar();
+            }
+
+            if (_params.showDropdowns && evt.target.classList.contains('years')) {
+                _changeYear();
+                _updateCalendar();
             }
         });
 
@@ -412,55 +446,46 @@ const C_Datepicker = (function() {
             }
         });
 
-        if (_params.showDropdowns) {
-            _calendar.querySelector('.months').addEventListener('click', function() {
-                _changeMonth();
-                _updateCalendar();
-            });
-
-            _calendar.querySelector('.years').addEventListener('click', function() {
-                _changeYear();
-                _updateCalendar();
-            });
-        }
-
         _calendar.querySelector('.cancel').addEventListener('click', function() {
             _host.datepicker.hideCalendar();
         });
 
-        _calendar.querySelector('.prev-button').addEventListener('click', function() {
-            _setToPrevMonth();
-            _updateCalendar();
-        });
+        if (callback !== undefined) {
+            callback(this);
+        }
 
-        _calendar.querySelector('.next-button').addEventListener('click', function() {
-            _setToNextMonth();
-            _updateCalendar();
-        });
+        return this;
     };
 
     _Datepicker.prototype = {
-        current: function() {
-            return dayjs().format();
+        today: function(format) {
+            format = format !== undefined ? format : _params.format;
+            return dayjs().format(format);
+        },
+
+        setParam: function(name, value) {
+            _params[name] = value;
+        },
+
+        render: function() {
+            _calendar.innerHTML = _renderCalendar();
+        },
+
+        startDate: function(date, format) {
+            format = format !== undefined ? format : _params.format;
+            _host.value = dayjs(date).format(format);
+            _selectedDay = dayjs(date).format('YYYY-M-D');
+            _updateCalendar();
         },
 
         showCalendar: function() {
-            console.log('showCalendar');
             _calendar.style.display = 'block';
         },
 
         hideCalendar: function() {
-            _host.datepicker.beforeHideCalendar();
+            //_host.datepicker.beforeHideCalendar();
             _calendar.style.display = 'none';
         },
-
-        afterSetDate: function(timestamp) {
-            // To be overriden.
-        }, 
-
-        beforeHideCalendar: function() {
-            // To be overriden.
-        } 
     };
 
     // Returns a init property that returns the "constructor" function.
