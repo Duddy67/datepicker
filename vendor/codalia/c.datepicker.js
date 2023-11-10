@@ -11,14 +11,18 @@ const C_Datepicker = (function() {
     const _months = [];
     const _years = [];
     const _today = dayjs().format('YYYY-M-D');
+    // The datepicker object.
+    let _datepicker = null;
     // The input element that hosts the datepicker.
     let _host = null;
+    // The div element that contains the datepicker.
     let _calendar = null;
     let _selectedDay = null;
     // The year to use in the datepicker (used in case of leap-years).
     let _dpYear = dayjs().format('YYYY'); // _dpYear  _dpMonth  _datepickerYear  _datepickerMonth
     // The month to use in the datepicker and that contains the days to display in the grid.
     let _dpMonth = dayjs().format('M');
+    let _beforeSetDateEvent =  new CustomEvent('beforeSetDate', {detail: {datepicker: null, timestamp: null, date: null, time: null}});
     let _afterSetDateEvent =  new CustomEvent('afterSetDate', {detail: {datepicker: null, timestamp: null, date: null, time: null}});
 
     function _initParams(params) {
@@ -35,6 +39,7 @@ const C_Datepicker = (function() {
         _params.maxDate = params.maxDate === undefined ? null : params.maxDate;
         _params.daysOfWeekDisabled = params.daysOfWeekDisabled === undefined ? null : params.daysOfWeekDisabled;
         _params.datesDisabled = params.datesDisabled === undefined ? null : params.datesDisabled;
+        _params.displayTodaysDate = params.displayTodaysDate === undefined ? false : params.displayTodaysDate;
     }
 
     // Private methods.
@@ -189,15 +194,18 @@ const C_Datepicker = (function() {
     }
 
     function _setDate(timestamp) {
+        _beforeSetDateEvent.detail.datepicker = _datepicker;
+        _beforeSetDateEvent.detail.timestamp = timestamp;
+        document.dispatchEvent(_beforeSetDateEvent);
+
         // Make sure the given timestamp is of the type number. (Note: add a plus sign to convert into number).
         timestamp = typeof timestamp != 'number' ? + timestamp : timestamp;
         _host.value = dayjs(timestamp).format(_params.format);
-        // Call the function allowing to perform some action after the date is set.
-        //_host.datepicker.afterSetDate(timestamp);
 
-        _afterSetDateEvent.detail.datepicker = _host.datepicker;
+        // Fire the after set date event.
+        _afterSetDateEvent.detail.datepicker = _datepicker;
         _afterSetDateEvent.detail.timestamp = timestamp;
-        window.dispatchEvent(_afterSetDateEvent);
+        document.dispatchEvent(_afterSetDateEvent);
     }
 
     function _renderCalendar() {
@@ -367,17 +375,11 @@ const C_Datepicker = (function() {
         _initParams(params);
         //
         dayjs.extend(window.dayjs_plugin_localeData);
-        //
+
+        // Store the host input element.
         _host = elem;
-        //
-        elem.datepicker = this;
-
+        // Add the host element as a datepicker's property.
         this.host = elem;
-
-        // Listen to the click event in the host element.
-        elem.addEventListener('click', function() {
-            this.datepicker.showCalendar(); 
-        });
 
         _setYears();
         _setMonths();
@@ -392,7 +394,9 @@ const C_Datepicker = (function() {
 
         this.hideCalendar();
 
-        _setDate(dayjs().valueOf());
+        if (_params.displayTodaysDate) {
+            _setDate(dayjs().valueOf());
+        }
 
         // Delegate the click event to the calendar element to check whenever an element is clicked.
         _calendar.addEventListener('click', function (evt) {
@@ -413,7 +417,8 @@ const C_Datepicker = (function() {
                 _selectedDay = dayjs(+evt.target.dataset.date).format('YYYY-M-D');
 
                 if (_params.autoHide) {
-                    _host.datepicker.hideCalendar();
+                    //_host.datepicker.hideCalendar();
+                    _calendar.style.display = 'none';
                 }
             }
 
@@ -436,23 +441,32 @@ const C_Datepicker = (function() {
                 _changeYear();
                 _updateCalendar();
             }
-        });
 
-        // Hide the datepicker when the user clicks outside the calendar.
-        document.addEventListener('click', function (evt) {
-            // The clicked target is not the input host and is not contained into the calendar element.
-            if (evt.target !== _host && !_calendar.contains(evt.target)) {
-                _host.datepicker.hideCalendar();
+            if (evt.target.classList.contains('cancel')) {
+                _calendar.style.display = 'none';
             }
         });
 
-        _calendar.querySelector('.cancel').addEventListener('click', function() {
-            _host.datepicker.hideCalendar();
+        // Hide or show the datepicker according to where the user clicks (outside the calendar or inside the host input element).
+        document.addEventListener('click', function (evt) {
+            // The clicked target is not the input host and is not contained into the calendar element.
+            if (evt.target !== _host && !_calendar.contains(evt.target)) {
+                //_host.datepicker.hideCalendar();
+                _calendar.style.display = 'none';
+            }
+
+            // The user has clicked into the host input element.
+            if (evt.target === _host) {
+                _calendar.style.display = 'block';
+            }
         });
 
+        // 
         if (callback !== undefined) {
             callback(this);
         }
+
+        _datepicker = this;
 
         return this;
     };
