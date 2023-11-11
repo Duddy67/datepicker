@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'daysOfWeekDisabled': [3,4],
         'datesDisabled': ['2023-05-05', '2023-08-15'],
         'displayTodaysDate': true,
+        'locale': 'fr',
     }, afterInit);
 
     function afterInit(datepicker) {

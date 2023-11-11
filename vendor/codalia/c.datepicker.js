@@ -11,21 +11,21 @@ const C_Datepicker = (function() {
     const _months = [];
     const _years = [];
     const _today = dayjs().format('YYYY-M-D');
-    // The datepicker object.
-    let _datepicker = null;
     // The input element that hosts the datepicker.
     let _host = null;
     // The div element that contains the datepicker.
-    let _calendar = null;
+    let _datepicker = null;
     let _selectedDay = null;
     // The year to use in the datepicker (used in case of leap-years).
     let _dpYear = dayjs().format('YYYY'); // _dpYear  _dpMonth  _datepickerYear  _datepickerMonth
     // The month to use in the datepicker and that contains the days to display in the grid.
     let _dpMonth = dayjs().format('M');
-    let _beforeSetDateEvent =  new CustomEvent('beforeSetDate', {detail: {datepicker: null, timestamp: null, date: null, time: null}});
-    let _afterSetDateEvent =  new CustomEvent('afterSetDate', {detail: {datepicker: null, timestamp: null, date: null, time: null}});
+    // 
+    let _beforeSetDateEvent; // = new CustomEvent('beforeSetDate', {detail: {datepicker: null, timestamp: null, date: null, time: null}});
+    let _afterSetDateEvent; // = new CustomEvent('afterSetDate', {detail: {datepicker: null, timestamp: null, date: null, time: null}});
 
     function _initParams(params) {
+        _params.locale = params.locale === undefined ? 'en' : params.locale;
         _params.autoHide = params.autoHide === undefined ? false : params.autoHide;
         _params.timePicker = params.timePicker === undefined ? false : params.timePicker;
         // Set the default format.
@@ -88,14 +88,14 @@ const C_Datepicker = (function() {
     }
 
     function _changeMonth() {
-        let selectedMonth = parseInt(_calendar.querySelector('.months').value) + 1;
+        let selectedMonth = parseInt(_datepicker.querySelector('.months').value) + 1;
         selectedMonth = selectedMonth < 10 ? '0'+selectedMonth : selectedMonth;
         // Update the month to display with the newly selected month.
         _dpMonth = selectedMonth;
     }
 
     function _changeYear() {
-        const selectedYear = _calendar.querySelector('.years').value;
+        const selectedYear = _datepicker.querySelector('.years').value;
         // Update the month to display with the newly selected year.
         _dpYear = selectedYear;
     }
@@ -144,7 +144,7 @@ const C_Datepicker = (function() {
             days.push(_getDayObject(_dpYear + '-' + _dpMonth + '-' + day, 'current'));
         }
 
-        // Compute the number of days needed to fill the calendar grid.
+        // Compute the number of days needed to fill the datepicker grid.
         const nbDaysInNextMonth = (_rows * _columns) - days.length;
         // Set the datepicker forward a month.
         datepicker = dayjs(_dpYear + '-' + _dpMonth).add(1, 'month').format('YYYY-M').split('-');
@@ -154,7 +154,7 @@ const C_Datepicker = (function() {
             day = i + 1;
             days.push(_getDayObject(datepicker[0] + '-' + datepicker[1] + '-' + day, 'next'));
 
-            // The calendar grid is filled.
+            // The datepicker grid is filled.
             if (i > nbDaysInNextMonth) {
                 break;
             }
@@ -194,7 +194,7 @@ const C_Datepicker = (function() {
     }
 
     function _setDate(timestamp) {
-        _beforeSetDateEvent.detail.datepicker = _datepicker;
+        //_beforeSetDateEvent.detail.datepicker = _datepicker;
         _beforeSetDateEvent.detail.timestamp = timestamp;
         document.dispatchEvent(_beforeSetDateEvent);
 
@@ -203,12 +203,12 @@ const C_Datepicker = (function() {
         _host.value = dayjs(timestamp).format(_params.format);
 
         // Fire the after set date event.
-        _afterSetDateEvent.detail.datepicker = _datepicker;
+        //_afterSetDateEvent.detail.datepicker = _datepicker;
         _afterSetDateEvent.detail.timestamp = timestamp;
         document.dispatchEvent(_afterSetDateEvent);
     }
 
-    function _renderCalendar() {
+    function _renderDatepicker() {
         let html = `<div class="datepicker datepicker-dropdown datepicker-orient-left datepicker-orient-bottom">`+
                    `<div class="datepicker-picker">`+`<div class="datepicker-header">`+`<div class="datepicker-title" style="display: none;"></div>`+
                    `<div class="datepicker-controls">`;
@@ -315,24 +315,24 @@ const C_Datepicker = (function() {
         return html;
     }
 
-    function _updateCalendar() {
+    function _updateDatepicker() {
         // Update the date drop down lists.
         if (_params.showDropdowns) {
             // Unselect the old selected month.
-            _calendar.querySelector('.months').selected = false;
+            _datepicker.querySelector('.months').selected = false;
             // Get the numeric value of the month to display (ie: 0 => January, 1 => February...).
             const monthNumeric = dayjs(_dpYear + '-' + _dpMonth).format('M') - 1;
             // Update the selected option.
-            _calendar.querySelector('.months option[value="'+ monthNumeric +'"]').selected = true;
+            _datepicker.querySelector('.months option[value="'+ monthNumeric +'"]').selected = true;
 
             // Same with year.
-            _calendar.querySelector('.years').selected = false;
+            _datepicker.querySelector('.years').selected = false;
             const year = dayjs(_dpYear + '-' + _dpMonth).format('YYYY');
-            _calendar.querySelector('.years option[value="'+ year +'"]').selected = true;
+            _datepicker.querySelector('.years option[value="'+ year +'"]').selected = true;
         }
         // Update the text date.
         else {
-            _calendar.querySelector('.view-switch').innerHTML = dayjs(_dpYear + '-' + _dpMonth).format('MMMM YYYY');
+            _datepicker.querySelector('.view-switch').innerHTML = dayjs(_dpYear + '-' + _dpMonth).format('MMMM YYYY');
         }
 
         // Update the datepicker grid.
@@ -348,25 +348,25 @@ const C_Datepicker = (function() {
             grid += `<span data-date="`+day.timestamp+`" class="datepicker-cell day `+extra+`">`+day.text+`</span>`;
         });
 
-        _calendar.querySelector('.datepicker-grid').innerHTML = grid;
+        _datepicker.querySelector('.datepicker-grid').innerHTML = grid;
 
         // Update both the previous and next buttons according to the month currently displayed in the datepicker. 
 
-        _calendar.querySelector('.prev-button').disabled = false;
+        _datepicker.querySelector('.prev-button').disabled = false;
         if (_params.minDate) {
             // Get the year and month of the min date to compare with the datepicker's.
             let minDate = dayjs(_params.minDate).format('YYYY-M');
             if (dayjs(dayjs(_dpYear + '-' + _dpMonth).subtract(1, 'month').format('YYYY-M')).isBefore(minDate)) {
-                _calendar.querySelector('.prev-button').disabled = true;
+                _datepicker.querySelector('.prev-button').disabled = true;
             }
         }
 
-        _calendar.querySelector('.next-button').disabled = false;
+        _datepicker.querySelector('.next-button').disabled = false;
         if (_params.maxDate) {
             // Get the year and month of the min date to compare with the datepicker's.
             let maxDate = dayjs(_params.maxDate).format('YYYY-M');
             if (dayjs(dayjs(_dpYear + '-' + _dpMonth).add(1, 'month').format('YYYY-M')).isAfter(maxDate)) {
-                _calendar.querySelector('.next-button').disabled = true;
+                _datepicker.querySelector('.next-button').disabled = true;
             }
         }
     }
@@ -375,6 +375,7 @@ const C_Datepicker = (function() {
         _initParams(params);
         //
         dayjs.extend(window.dayjs_plugin_localeData);
+        dayjs.locale(_params.locale);
 
         // Store the host input element.
         _host = elem;
@@ -385,21 +386,17 @@ const C_Datepicker = (function() {
         _setMonths();
         _setDates();
 
-        // Create a div container for the calendar.
-        _calendar = document.createElement('div');
-        // Insert the calendar in the container.
-        _calendar.insertAdjacentHTML('afterbegin', _renderCalendar());
+        // Create a div container for the datepicker.
+        _datepicker = document.createElement('div');
+        // Insert the datepicker in the container.
+        _datepicker.insertAdjacentHTML('afterbegin', _renderDatepicker());
         // Insert the div container after the given element.
-        _host.insertAdjacentElement('afterend', _calendar);
+        _host.insertAdjacentElement('afterend', _datepicker);
 
-        this.hideCalendar();
+        this.hideDatepicker();
 
-        if (_params.displayTodaysDate) {
-            _setDate(dayjs().valueOf());
-        }
-
-        // Delegate the click event to the calendar element to check whenever an element is clicked.
-        _calendar.addEventListener('click', function (evt) {
+        // Delegate the click event to the datepicker element to check whenever an element is clicked.
+        _datepicker.addEventListener('click', function (evt) {
             // Check the day is not disabled
             if (evt.target.classList.contains('day') && !evt.target.classList.contains('disabled')) {
                 _setDate(evt.target.dataset.date);
@@ -417,56 +414,62 @@ const C_Datepicker = (function() {
                 _selectedDay = dayjs(+evt.target.dataset.date).format('YYYY-M-D');
 
                 if (_params.autoHide) {
-                    //_host.datepicker.hideCalendar();
-                    _calendar.style.display = 'none';
+                    //_host.datepicker.hideDatepicker();
+                    _datepicker.style.display = 'none';
                 }
             }
 
             if (evt.target.classList.contains('prev-button')) {
                 _setToPrevMonth();
-                _updateCalendar();
+                _updateDatepicker();
             }
 
             if (evt.target.classList.contains('next-button')) {
                 _setToNextMonth();
-                _updateCalendar();
+                _updateDatepicker();
             }
 
             if (_params.showDropdowns && evt.target.classList.contains('months')) {
                 _changeMonth();
-                _updateCalendar();
+                _updateDatepicker();
             }
 
             if (_params.showDropdowns && evt.target.classList.contains('years')) {
                 _changeYear();
-                _updateCalendar();
+                _updateDatepicker();
             }
 
             if (evt.target.classList.contains('cancel')) {
-                _calendar.style.display = 'none';
+                _datepicker.style.display = 'none';
             }
         });
 
-        // Hide or show the datepicker according to where the user clicks (outside the calendar or inside the host input element).
+        // Hide or show the datepicker according to where the user clicks (outside the datepicker or inside the host input element).
         document.addEventListener('click', function (evt) {
-            // The clicked target is not the input host and is not contained into the calendar element.
-            if (evt.target !== _host && !_calendar.contains(evt.target)) {
-                //_host.datepicker.hideCalendar();
-                _calendar.style.display = 'none';
+            // The clicked target is not the input host and is not contained into the datepicker element.
+            if (evt.target !== _host && !_datepicker.contains(evt.target)) {
+                //_host.datepicker.hideDatepicker();
+                _datepicker.style.display = 'none';
             }
 
             // The user has clicked into the host input element.
             if (evt.target === _host) {
-                _calendar.style.display = 'block';
+                _datepicker.style.display = 'block';
             }
         });
+
+        // Create and initialise the custom events 
+        _beforeSetDateEvent = new CustomEvent('beforeSetDate', {detail: {datepicker: this, timestamp: null, date: null, time: null}});
+        _afterSetDateEvent = new CustomEvent('afterSetDate', {detail: {datepicker: this, timestamp: null, date: null, time: null}});
+
+        if (_params.displayTodaysDate) {
+            _setDate(dayjs().valueOf());
+        }
 
         // 
         if (callback !== undefined) {
             callback(this);
         }
-
-        _datepicker = this;
 
         return this;
     };
@@ -482,23 +485,23 @@ const C_Datepicker = (function() {
         },
 
         render: function() {
-            _calendar.innerHTML = _renderCalendar();
+            _datepicker.innerHTML = _renderDatepicker();
         },
 
         startDate: function(date, format) {
             format = format !== undefined ? format : _params.format;
             _host.value = dayjs(date).format(format);
             _selectedDay = dayjs(date).format('YYYY-M-D');
-            _updateCalendar();
+            _updateDatepicker();
         },
 
-        showCalendar: function() {
-            _calendar.style.display = 'block';
+        showDatepicker: function() {
+            _datepicker.style.display = 'block';
         },
 
-        hideCalendar: function() {
-            //_host.datepicker.beforeHideCalendar();
-            _calendar.style.display = 'none';
+        hideDatepicker: function() {
+            //_host.datepicker.beforeHideDatepicker();
+            _datepicker.style.display = 'none';
         },
     };
 
