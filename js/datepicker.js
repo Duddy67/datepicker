@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let previous = dayjs('2023-5').subtract(1, 'month').format('YYYY-MM');
     //console.log(dayjs('2011-1-1').isSame(dayjs('2011-01-01', 'day')));
     //console.log(dayjs('2023-10-2').format('YYYY-MM-DD'));
-    console.log('day: '+dayjs('2023-10-2 15:54').format('D MM YYYY hh:mm'));
+    //console.log('day: '+dayjs('2023-10-2 15:54').format('D MM YYYY hh:mm'));
 
 
     let elem = document.getElementById('date');
@@ -35,16 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
         //'timePicker24Hour': true,
         //'minDate': '2022-05-10',
         //'maxDate': '2022-07-30',
-        'daysOfWeekDisabled': [3,4],
-        'datesDisabled': ['2023-05-05', '2023-08-15'],
+        //'daysOfWeekDisabled': [3,4],
+        //'datesDisabled': ['2023-05-05', '2023-08-15'],
         'displayTodaysDate': true,
         'locale': 'fr',
     }, afterInit);
 
     function afterInit(datepicker) {
-         console.log(datepicker.host);
-         datepicker.setParam('timePicker', false);
-         datepicker.render();
+         console.log(datepicker.today());
+         //datepicker.setParams({'timePicker': false, 'showDropdowns': false});
+         //datepicker.render();
          //datepicker.startDate('2023-11-27');
          //elem.value = param;
     }
