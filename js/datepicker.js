@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     next = next < 10 ? '0' + next : next;
     let previous = dayjs('2023-5').subtract(1, 'month').format('YYYY-MM');
     //console.log(dayjs('2011-1-1').isSame(dayjs('2011-01-01', 'day')));
-    //console.log(dayjs('2023-10-2').format('YYYY-MM-DD'));
+    console.log(dayjs(1694556000000).format('YYYY-MM-DD'));
     //console.log('day: '+dayjs('2023-10-2 15:54').format('D MM YYYY hh:mm'));
 
 
@@ -29,10 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     elem.datepicker = new C_Datepicker.init(elem, {
         'autoHide': true,
-        'format': 'ddd D MMM YYYY',
+        'format': 'ddd D MMM YYYY HH:mm',
         'timePicker': true,
         'showDropdowns': true,
-        //'timePicker24Hour': true,
+        'timePicker24Hour': true,
         //'minDate': '2022-05-10',
         //'maxDate': '2022-07-30',
         //'daysOfWeekDisabled': [3,4],
@@ -41,21 +41,23 @@ document.addEventListener('DOMContentLoaded', () => {
         'locale': 'fr',
     }, afterInit);
 
-    function afterInit(datepicker) {
-         console.log(datepicker.today());
+    function afterInit(datepicker, startDate) {
+         //console.log(datepicker.today());
          //datepicker.setParams({'timePicker': false, 'showDropdowns': false});
          //datepicker.render();
-         //datepicker.startDate('2023-11-27');
+         //datepicker.startDate('2023-09-27 15:22');
+         datepicker.startingDate = '2023-09-27 00:42';
          //elem.value = param;
     }
 
     document.addEventListener('beforeSetDate', function(evt) {
         //console.log(dayjs(evt.detail).format('YYYY-MM-DD'));
-        console.log('beforeSetDate');
+        console.log(evt.detail);
     }, false);
 
     document.addEventListener('afterSetDate', function(evt) {
         //console.log(dayjs(evt.detail).format('YYYY-MM-DD'));
-        console.log('afterSetDate');
+        //console.log('afterSetDate');
+        console.log(evt.detail);
     }, false);
 });

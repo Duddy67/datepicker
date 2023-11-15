@@ -229,15 +229,23 @@ const C_Datepicker = (function() {
      */
     function _setDate(timestamp) {
         // Fire the beforeSetDate event.
-        _beforeSetDateEvent.detail.timestamp = timestamp;
+        _beforeSetDateEvent.detail.timestamp = dayjs(_selectedDay).valueOf();
+        _beforeSetDateEvent.detail.date = dayjs(_selectedDay).format('YYYY-MM-DD');
+        _beforeSetDateEvent.detail.time = _selectedTime;
         document.dispatchEvent(_beforeSetDateEvent);
 
         // Make sure the given timestamp is of the type number. (Note: add a plus sign to convert into number).
-        timestamp = typeof timestamp != 'number' ? + timestamp : timestamp;
-        _host.value = dayjs(timestamp).format(_params.format);
+        timestamp = typeof timestamp != 'number' ? +timestamp : timestamp;
+        // Get the selected date from the given timestamp.
+        let date = dayjs(timestamp).format('YYYY-MM-DD');
+        // Add the time if needed.
+        date = _params.timePicker ? date + ' ' + _getTime() : date;
+        _host.value = dayjs(date).format(_params.format);
 
         // Fire the afterSetDate event.
         _afterSetDateEvent.detail.timestamp = timestamp;
+        _afterSetDateEvent.detail.date = dayjs(date).format('YYYY-MM-DD');
+        _afterSetDateEvent.detail.time = _getTime();
         document.dispatchEvent(_afterSetDateEvent);
     }
 
@@ -439,6 +447,56 @@ const C_Datepicker = (function() {
                 _datepicker.querySelector('.next-button').disabled = true;
             }
         }
+
+        // Update the time drop down lists only when it's called by the _setStartingDate function.
+        if (_updateDatepicker.caller.name == '_setStartingDate' && _params.timePicker) {
+            //
+            let time = dayjs('2001-01-01 ' + _selectedTime).format('H:m').split(':');
+            let meridiem = 'am';
+
+            // Convert the 24 hour time to 12 hour time.
+            if (!_params.timePicker24Hour) {
+                if (time[0] > 12) {
+                    time[0] = +time[0] - 12;
+                    meridiem = 'pm';
+                }
+
+                // Midnight 
+                if (time[0] == 0) {
+                    time[0] = 12;
+                }
+                // Noon is considered as post meridiem
+                else if (time[0] == 12) {
+                    meridiem = 'pm';
+                }
+            }
+
+            // Unselect the old selected hour.
+            _datepicker.querySelector('.hours').selected = false;
+            // Update the selected option.
+            _datepicker.querySelector('.hours option[value="'+ time[0] +'"]').selected = true;
+            // Unselect the old selected minute.
+            _datepicker.querySelector('.minutes').selected = false;
+            // Update the selected option.
+            _datepicker.querySelector('.minutes option[value="'+ time[1] +'"]').selected = true;
+
+            if (_datepicker.querySelector('.meridiems')) {
+                _datepicker.querySelector('.meridiems').selected = false;
+                _datepicker.querySelector('.meridiems option[value="'+ meridiem +'"]').selected = true;
+            }
+        }
+    }
+
+    /*
+     * Called just one time through the callback function.
+     */
+    function _setStartingDate(date) {
+        _host.value = dayjs(date).format(_params.format);
+        _selectedDay = dayjs(date).format('YYYY-M-D');
+        _dpMonth = dayjs(date).format('M');
+        _dpYear = dayjs(date).format('YYYY');
+        _selectedTime = dayjs(date).format('HH:mm');
+        _updateDatepicker();
     }
 
     /*
@@ -487,12 +545,12 @@ const C_Datepicker = (function() {
                 // Update the selected day attribute.
                 _selectedDay = dayjs(+evt.target.dataset.date).format('YYYY-M-D');
 
+                // As well as the selected time attribute (if timePicker is active).
                 if (_params.timePicker) {
-
+                    _selectedTime = _getTime();
                 }
 
                 if (_params.autoHide) {
-                    //_host.datepicker.hideDatepicker();
                     _datepicker.style.display = 'none';
                 }
             }
@@ -524,7 +582,6 @@ const C_Datepicker = (function() {
             }
 
             if (evt.target.classList.contains('clear')) {
-console.log(_getTime());
                 _host.value = '';
                 _selectedDay = null;
                 _updateDatepicker();
@@ -554,9 +611,13 @@ console.log(_getTime());
             _setDate(dayjs().valueOf());
         }
 
-        // 
+        // Run the given callback function.
         if (callback !== undefined) {
             callback(this);
+
+            if (this.startingDate !== undefined) {
+                _setStartingDate(this.startingDate);
+            }
         }
 
         return this;
@@ -570,6 +631,10 @@ console.log(_getTime());
             return dayjs().format(format);
         },
 
+        current: function() {
+            return dayjs(_dpYear + '-' + _dpMonth).format('YYYY-MM-DD');
+       },
+
         setParams: function(params) {
             for (const key in params) {
                 _params[key] = params[key];
@@ -579,14 +644,6 @@ console.log(_getTime());
         // Rebuilds all the datepicker.
         render: function() {
             _datepicker.innerHTML = _renderDatepicker();
-        },
-
-        // The date to start with after the page is loaded.
-        startDate: function(date, format) {
-            format = format !== undefined ? format : _params.format;
-            _host.value = dayjs(date).format(format);
-            _selectedDay = dayjs(date).format('YYYY-M-D');
-            _updateDatepicker();
         },
 
         showDatepicker: function() {
