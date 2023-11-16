@@ -15,8 +15,8 @@ const C_Datepicker = (function() {
     let _host;
     // The div element that contains the datepicker.
     let _datepicker;
-    let _selectedDay;
-    let _selectedTime;
+    let _selectedDay = null;
+    let _selectedTime = null;
     // The year to use in the datepicker (useful in case of leap-years).
     let _dpYear = dayjs().format('YYYY'); 
     // The month to use in the datepicker and that contains the days to display in the grid.
@@ -26,6 +26,8 @@ const C_Datepicker = (function() {
     let _afterSetDateEvent;
     let _beforeClearEvent;
     let _afterClearEvent;
+    let _beforeTodayEvent;
+    let _afterTodayEvent;
 
     // Private methods.
 
@@ -49,6 +51,9 @@ const C_Datepicker = (function() {
         _params.daysOfWeekDisabled = params.daysOfWeekDisabled === undefined ? null : params.daysOfWeekDisabled;
         _params.datesDisabled = params.datesDisabled === undefined ? null : params.datesDisabled;
         _params.displayTodaysDate = params.displayTodaysDate === undefined ? false : params.displayTodaysDate;
+        _params.today = params.today === undefined ? false : params.today;
+        _params.clear = params.clear === undefined ? false : params.clear;
+        _params.cancel = params.cancel === undefined ? false : params.cancel;
     }
 
     /*
@@ -228,25 +233,43 @@ const C_Datepicker = (function() {
      * Sets the host input value to the newly selected date. 
      */
     function _setDate(timestamp) {
-        // Fire the beforeSetDate event.
-        _beforeSetDateEvent.detail.timestamp = dayjs(_selectedDay).valueOf();
-        _beforeSetDateEvent.detail.date = dayjs(_selectedDay).format('YYYY-MM-DD');
-        _beforeSetDateEvent.detail.time = _selectedTime;
+        // Fire the beforeSetDate event with the old selected date (if any).
+        let date = _selectedDay ? dayjs(_selectedDay).format('YYYY-MM-DD') : null;
+        _beforeSetDateEvent.detail.date = date;
+        let time = date ? _selectedTime : null;
+        _beforeSetDateEvent.detail.time = time;
         document.dispatchEvent(_beforeSetDateEvent);
 
         // Make sure the given timestamp is of the type number. (Note: add a plus sign to convert into number).
         timestamp = typeof timestamp != 'number' ? +timestamp : timestamp;
         // Get the selected date from the given timestamp.
-        let date = dayjs(timestamp).format('YYYY-MM-DD');
+        date = dayjs(timestamp).format('YYYY-MM-DD');
         // Add the time if needed.
         date = _params.timePicker ? date + ' ' + _getTime() : date;
         _host.value = dayjs(date).format(_params.format);
 
-        // Fire the afterSetDate event.
-        _afterSetDateEvent.detail.timestamp = timestamp;
+        // Fire the afterSetDate event with the newly selected date.
         _afterSetDateEvent.detail.date = dayjs(date).format('YYYY-MM-DD');
-        _afterSetDateEvent.detail.time = _getTime();
+        time = _params.timePicker ? _getTime() : null;
+        _afterSetDateEvent.detail.time = time;
         document.dispatchEvent(_afterSetDateEvent);
+    }
+
+    function _setToday() {
+        // Fire the beforeToday event with the old selected date (if any).
+        let date = _selectedDay ? dayjs(_selectedDay).format('YYYY-MM-DD') : null;
+        _beforeTodayEvent.detail.date = date;
+        let time = date ? _selectedTime : null;
+        _beforeTodayEvent.detail.time = time;
+        document.dispatchEvent(_beforeTodayEvent);
+
+        // Set the datepicker to the current date.
+        _selectedDay = dayjs().format('YYYY-M-D');
+        _selectedTime = _params.timePicker ? dayjs().format('HH:mm') : null;
+
+        _host.value = dayjs().format(_params.format);
+
+        document.dispatchEvent(_afterTodayEvent);
     }
 
     /*
@@ -378,14 +401,24 @@ const C_Datepicker = (function() {
             }
 
             html += `</div>`;
-
         }
 
-        html += `<div class="datepicker-controls">`+
-                `<button type="button" class="btn btn-success" tabindex="-1" >Today</button>`+
-                `<button type="button" class="btn btn-info clear" tabindex="-1" >Clear</button>`+
-                `<button type="button" class="btn btn-danger cancel" tabindex="-1" >Cancel</button>`+
-                `</div></div></div>`;
+        // Build the control buttons according to the parameter setting.
+        html += `<div class="datepicker-controls">`;
+
+        if (_params.today) {
+            html += `<button type="button" class="btn btn-success today" tabindex="-1" >Today</button>`;
+        }
+
+        if (_params.clear) {
+            html += `<button type="button" class="btn btn-info clear" tabindex="-1" >Clear</button>`;
+        }
+
+        if (_params.cancel) {
+            html += `<button type="button" class="btn btn-danger cancel" tabindex="-1" >Cancel</button>`;
+        }
+
+        html += `</div></div></div>`;
 
         return html;
     }
@@ -450,7 +483,7 @@ const C_Datepicker = (function() {
 
         // Update the time drop down lists only when it's called by the _setStartingDate function.
         if (_updateDatepicker.caller.name == '_setStartingDate' && _params.timePicker) {
-            //
+            // Use a date in the past to get the time in the desired format.
             let time = dayjs('2001-01-01 ' + _selectedTime).format('H:m').split(':');
             let meridiem = 'am';
 
@@ -495,7 +528,7 @@ const C_Datepicker = (function() {
         _selectedDay = dayjs(date).format('YYYY-M-D');
         _dpMonth = dayjs(date).format('M');
         _dpYear = dayjs(date).format('YYYY');
-        _selectedTime = dayjs(date).format('HH:mm');
+        _selectedTime = _params.timePicker ? dayjs(date).format('HH:mm') : null;
         _updateDatepicker();
     }
 
@@ -582,8 +615,22 @@ const C_Datepicker = (function() {
             }
 
             if (evt.target.classList.contains('clear')) {
+                // Fire the beforeClear event with the old selected date.
+                let date = _selectedDay ? dayjs(_selectedDay).format('YYYY-MM-DD') : null;
+                _beforeClearEvent.detail.date = date;
+                let time = date ? _selectedTime : null;
+                _beforeClearEvent.detail.time = time;
+                document.dispatchEvent(_beforeClearEvent);
+
                 _host.value = '';
                 _selectedDay = null;
+                _updateDatepicker();
+
+                document.dispatchEvent(_afterClearEvent);
+            }
+
+            if (evt.target.classList.contains('today')) {
+                _setToday();
                 _updateDatepicker();
             }
         });
@@ -602,10 +649,12 @@ const C_Datepicker = (function() {
         });
 
         // Create and initialise the custom events 
-        _beforeSetDateEvent = new CustomEvent('beforeSetDate', {detail: {datepicker: this, timestamp: null, date: null, time: null}});
-        _afterSetDateEvent = new CustomEvent('afterSetDate', {detail: {datepicker: this, timestamp: null, date: null, time: null}});
-        _beforeClearEvent = new CustomEvent('beforeClear', {detail: {datepicker: this, timestamp: null, date: null, time: null}});
-        _afterClearEvent = new CustomEvent('afterClear', {detail: {datepicker: this, timestamp: null, date: null, time: null}});
+        _beforeSetDateEvent = new CustomEvent('beforeSetDate', {detail: {datepicker: this, date: null, time: null}});
+        _afterSetDateEvent = new CustomEvent('afterSetDate', {detail: {datepicker: this, date: null, time: null}});
+        _beforeClearEvent = new CustomEvent('beforeClear', {detail: {datepicker: this, date: null, time: null}});
+        _afterClearEvent = new CustomEvent('afterClear', {detail: {datepicker: this}});
+        _beforeTodayEvent = new CustomEvent('beforeToday', {detail: {datepicker: this, date: null, time: null}});
+        _afterTodayEvent = new CustomEvent('afterToday', {detail: {datepicker: this}});
 
         if (_params.displayTodaysDate) {
             _setDate(dayjs().valueOf());
@@ -615,6 +664,7 @@ const C_Datepicker = (function() {
         if (callback !== undefined) {
             callback(this);
 
+            // Check for a possible starting date.
             if (this.startingDate !== undefined) {
                 _setStartingDate(this.startingDate);
             }

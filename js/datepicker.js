@@ -25,31 +25,40 @@ document.addEventListener('DOMContentLoaded', () => {
     //console.log('day: '+dayjs('2023-10-2 15:54').format('D MM YYYY hh:mm'));
 
 
-    let elem = document.getElementById('date');
+    //let elem = document.getElementById('date');
+    let elems = document.querySelectorAll('.date');
 
-    elem.datepicker = new C_Datepicker.init(elem, {
-        'autoHide': true,
-        'format': 'ddd D MMM YYYY HH:mm',
-        'timePicker': true,
-        'showDropdowns': true,
-        'timePicker24Hour': true,
-        //'minDate': '2022-05-10',
-        //'maxDate': '2022-07-30',
-        //'daysOfWeekDisabled': [3,4],
-        //'datesDisabled': ['2023-05-05', '2023-08-15'],
-        'displayTodaysDate': true,
-        'locale': 'fr',
-    }, afterInit);
+    for (let i = 0; i < elems.length; i++) {
+        elems[i].datepicker = new C_Datepicker.init(elems[i], {
+            'ID': i,
+            'autoHide': true,
+            'format': 'ddd D MMM YYYY HH:mm',
+            //'timePicker': true,
+            'showDropdowns': true,
+            'timePicker24Hour': true,
+            //'minDate': '2022-05-10',
+            //'maxDate': '2022-07-30',
+            //'daysOfWeekDisabled': [3,4],
+            //'datesDisabled': ['2023-05-05', '2023-08-15'],
+            'displayTodaysDate': true,
+            'today': true,
+            'clear': true,
+            'cancel': true,
+            'locale': 'fr',
+        }, afterInit);
+    }
 
     function afterInit(datepicker, startDate) {
-         //console.log(datepicker.today());
+         //console.log(datepicker.host);
          //datepicker.setParams({'timePicker': false, 'showDropdowns': false});
          //datepicker.render();
          //datepicker.startDate('2023-09-27 15:22');
-         datepicker.startingDate = '2023-09-27 00:42';
+         //datepicker.startingDate = '2023-09-27 00:42';
          //elem.value = param;
     }
 
+    console.log(elems[0]);
+    //console.log(elems[1].getHost());
     document.addEventListener('beforeSetDate', function(evt) {
         //console.log(dayjs(evt.detail).format('YYYY-MM-DD'));
         console.log(evt.detail);
@@ -58,6 +67,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('afterSetDate', function(evt) {
         //console.log(dayjs(evt.detail).format('YYYY-MM-DD'));
         //console.log('afterSetDate');
+        console.log(evt.detail);
+    }, false);
+
+    document.addEventListener('beforeClear', function(evt) {
+        console.log(evt.detail);
+    }, false);
+
+    document.addEventListener('afterClear', function(evt) {
+        console.log(evt.detail);
+    }, false);
+
+    document.addEventListener('beforeToday', function(evt) {
+        console.log(evt.detail);
+    }, false);
+
+    document.addEventListener('afterToday', function(evt) {
         console.log(evt.detail);
     }, false);
 });
