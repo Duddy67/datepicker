@@ -32,7 +32,7 @@ const C_Datepicker = (function() {
         _(_key).years = [];
         _(_key).today = dayjs().format('YYYY-M-D');
 
-        // Get the host element data. 
+        // Get the host element main attributes. 
         const host = {'name': null, 'id': null, 'classes': null};
         host.name = element.getAttribute('name');
         host.id = element.getAttribute('id');
@@ -74,7 +74,7 @@ const C_Datepicker = (function() {
         _(_key).params.maxDate = params.maxDate === undefined ? null : params.maxDate;
         _(_key).params.daysOfWeekDisabled = params.daysOfWeekDisabled === undefined ? null : params.daysOfWeekDisabled;
         _(_key).params.datesDisabled = params.datesDisabled === undefined ? null : params.datesDisabled;
-        _(_key).params.displayTodaysDate = params.displayTodaysDate === undefined ? false : params.displayTodaysDate;
+        _(_key).params.displayDate = params.displayDate === undefined ? false : params.displayDate;
         _(_key).params.today = params.today === undefined ? false : params.today;
         _(_key).params.clear = params.clear === undefined ? false : params.clear;
         _(_key).params.cancel = params.cancel === undefined ? false : params.cancel;
@@ -94,7 +94,7 @@ const C_Datepicker = (function() {
             return document.getElementsByName(_(_key).host.name)[0];
         }
 
-        // No host element has been found.
+        // The host element can't be find.
         return null;
     }
 
@@ -287,7 +287,7 @@ const C_Datepicker = (function() {
         // Get the selected date from the given timestamp.
         date = dayjs(timestamp).format('YYYY-MM-DD');
         // Add the time if needed.
-        date = _(_key).params.timePicker ? date + ' ' + _getTime(_) : date;
+        date = _(_key).params.timePicker ? date + ' ' + _getTime(_, true) : date;
         _getHostElement(_).value = dayjs(date).format(_(_key).params.format);
 
         // Fire the afterSetDate event with the newly selected date.
@@ -295,6 +295,22 @@ const C_Datepicker = (function() {
         time = _(_key).params.timePicker ? _getTime(_) : null;
         _(_key).afterSetDateEvent.detail.time = time;
         document.dispatchEvent(_(_key).afterSetDateEvent);
+    }
+
+    function _clearDate(_) {
+        // Fire the beforeClear event with the old selected date.
+        let date = _(_key).selectedDay ? dayjs(_(_key).selectedDay).format('YYYY-MM-DD') : null;
+        _(_key).beforeClearEvent.detail.date = date;
+        let time = date ? _(_key).selectedTime : null;
+        _(_key).beforeClearEvent.detail.time = time;
+        document.dispatchEvent(_(_key).beforeClearEvent);
+
+        _getHostElement(_).value = '';
+        _(_key).selectedDay = null;
+        _updateDatepicker(_);
+
+        document.dispatchEvent(_(_key).afterClearEvent);
+
     }
 
     function _setToday(_) {
@@ -315,16 +331,18 @@ const C_Datepicker = (function() {
     }
 
     /*
-     * Returns the selected time into the HH:mm format.
+     * Returns the selected time into the HH:mm or hh:mm a format 
+     * according to the meridiem optional parameter.
      */
-    function _getTime(_) {
+    function _getTime(_, meridiem = false) {
         // Make sure the drop down lists of time exist.
         if (_(_key).params.timePicker) {
             let hour = _(_key).datepicker.querySelector('[name="hours"]').value;
             let minute = _(_key).datepicker.querySelector('[name="minutes"]').value;
+            const TwelveHourClock = _(_key).params.timePicker24Hour ? false : true;
 
             // Check for meridiem format (am / pm)
-            if (!_(_key).params.timePicker24Hour) {
+            if (TwelveHourClock && !meridiem) {
                 // Convert hour into 24 hour format.
                 if (_(_key).datepicker.querySelector('[name="meridiems"]').value == 'pm') {
                     hour = hour < 12 ? +hour + 12 : 0;
@@ -334,7 +352,9 @@ const C_Datepicker = (function() {
             hour = hour < 10 ? '0' + hour : hour;
             minute = minute < 10 ? '0' + minute : minute;
 
-            return hour + ':' + minute;
+            const time = TwelveHourClock && meridiem ? hour + ':' + minute + ' ' + _(_key).datepicker.querySelector('[name="meridiems"]').value : hour + ':' + minute;
+
+            return time;
         }
 
         return null;
@@ -498,7 +518,7 @@ const C_Datepicker = (function() {
             extra += (day.today) ? ' today' : '';
             extra += (day.selected) ? ' selected' : '';
             extra += (day.disabled) ? ' disabled' : '';
-            grid += `<span data-date="`+day.timestamp+`" class="datepicker-cell day `+extra+`">`+day.text+`</span>`;
+            grid += `<span data-date="` + day.timestamp + `" class="datepicker-cell day ` + extra + `">` + day.text + `</span>`;
         });
 
         _(_key).datepicker.querySelector('.datepicker-grid').innerHTML = grid;
@@ -566,22 +586,27 @@ const C_Datepicker = (function() {
      * Called just one time through the callback function.
      */
     function _setStartingDate(_, date) {
-        _getHostElement(_).value = dayjs(date).format(_(_key).params.format);
+        if (_(_key).params.displayDate) {
+            _getHostElement(_).value = dayjs(date).format(_(_key).params.format);
+        }
+
         _(_key).selectedDay = dayjs(date).format('YYYY-M-D');
         _(_key).dpMonth = dayjs(date).format('M');
         _(_key).dpYear = dayjs(date).format('YYYY');
         _(_key).selectedTime = _(_key).params.timePicker ? dayjs(date).format('HH:mm') : null;
-        _(_key).updateDatepicker(_);
+        _updateDatepicker(_);
     }
 
 
-    // Function used as a class constructor.
+    // The datepicker constructor.
     const _Datepicker = function(element, params, callback) {
         // Creates a private object
         this._ = _private(); 
 
+        // Initialize both private properties and parameters.
         _initProperties(this._, element);
         _initParams(this._, params);
+
         // Some DayJS functions require the locale data plugin.
         dayjs.extend(window.dayjs_plugin_localeData);
         // Set the locale for the datepicker.
@@ -611,7 +636,7 @@ const C_Datepicker = (function() {
                 _setDate(this._, evt.target.dataset.date);
 
                 // unselect the old selected day.
-                let old = document.querySelector('.selected');
+                let old = _getHostElement(this._).querySelector('.selected');
 
                 if (old) {
                    old.classList.remove('selected');
@@ -659,18 +684,7 @@ const C_Datepicker = (function() {
             }
 
             if (evt.target.classList.contains('clear')) {
-                // Fire the beforeClear event with the old selected date.
-                let date = this._(_key).selectedDay ? dayjs(this._(_key).selectedDay).format('YYYY-MM-DD') : null;
-                this._(_key).beforeClearEvent.detail.date = date;
-                let time = date ? this._(_key).selectedTime : null;
-                this._(_key).beforeClearEvent.detail.time = time;
-                document.dispatchEvent(this._(_key).beforeClearEvent);
-
-                _getHostElement(this._).value = '';
-                this._(_key).selectedDay = null;
-                _updateDatepicker(this._);
-
-                document.dispatchEvent(this._(_key).afterClearEvent);
+                _clearDate(this._);
             }
 
             if (evt.target.classList.contains('today')) {
@@ -702,7 +716,8 @@ const C_Datepicker = (function() {
         this._(_key).beforeTodayEvent = new CustomEvent('beforeToday', {detail: {datepicker: this, date: null, time: null}});
         this._(_key).afterTodayEvent = new CustomEvent('afterToday', {detail: {datepicker: this}});
 
-        if (this._(_key).params.displayTodaysDate) {
+        if (this._(_key).params.displayDate) {
+            // By default display the today's date.
             _setDate(this._, dayjs().valueOf());
         }
 
@@ -716,7 +731,7 @@ const C_Datepicker = (function() {
             }
         }
 
-        return this;
+        //return this;
     };
 
     // Public methods.
@@ -742,6 +757,10 @@ const C_Datepicker = (function() {
             this._(_key).datepicker.innerHTML = _renderDatepicker(this._);
         },
 
+        clear: function() {
+            _clearDate(this._);
+        },
+
         showDatepicker: function() {
             this._(_key).datepicker.style.display = 'block';
         },
@@ -754,7 +773,7 @@ const C_Datepicker = (function() {
             return _getHostElement(this._);
         },
 
-        getHostData: function() {
+        getHostAttributes: function() {
             return this._(_key).host;
         },
     };

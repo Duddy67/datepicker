@@ -51,6 +51,18 @@
   display: flex;
 }
 
+.datepicker-controls .today {
+  margin: 0.5rem;
+}
+
+.datepicker-controls .clear {
+  margin: 0.5rem;
+}
+
+.datepicker-controls .cancel {
+  margin: 0.5rem;
+}
+
 .datepicker-time {
   display: flex;
   margin: 0.5rem;
@@ -122,18 +134,14 @@
 }
 
 .datepicker .hours {
-  display: block;
-  margin: auto;
+  margin-right: 5px;
 }
 
 .datepicker .minutes {
-  display: block;
-  margin: auto;
+  margin-right: 5px;
 }
 
 .datepicker .meridiems {
-  display: block;
-  margin: auto;
 }
 
 .datepicker .days-of-week {
@@ -289,5 +297,22 @@
 .datepicker-input.in-edit:focus,
 .datepicker-input.in-edit:active {
   box-shadow: 0 0 0.25em 0.25em rgba(61, 86, 195, 0.2);
+}
+
+.datepicker-dropdown-date {
+  width: 100%;
+  text-align: center;
+}
+
+.datepicker-dropdown-date .months {
+  margin: 0.2rem;
+}
+
+.datepicker-dropdown-date .years {
+  margin: 0.2rem;
+}
+
+.datepicker-time {
+  justify-content: center;
 }
 

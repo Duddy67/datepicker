@@ -38,25 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         //'maxDate': '2022-07-30',
         //'daysOfWeekDisabled': [3,4],
         //'datesDisabled': ['2023-05-05', '2023-08-15'],
-        'displayTodaysDate': true,
-        'today': true,
-        'clear': true,
-        'cancel': true,
-        'locale': 'fr',
-    }, afterInit);
-
-    let birthdate = document.getElementById('birth_date');
-    birthdate.datepicker = new C_Datepicker.init(birthdate, {
-        'autoHide': true,
-        'format': 'ddd D MMM YYYY HH:mm',
-        //'timePicker': true,
-        'showDropdowns': true,
-        'timePicker24Hour': true,
-        //'minDate': '2022-05-10',
-        //'maxDate': '2022-07-30',
-        //'daysOfWeekDisabled': [3,4],
-        //'datesDisabled': ['2023-05-05', '2023-08-15'],
-        'displayTodaysDate': true,
+        'displayDate': true,
         'today': true,
         'clear': true,
         'cancel': true,
@@ -66,15 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 0; i < elems.length; i++) {
         elems[i].datepicker = new C_Datepicker.init(elems[i], {
             'autoHide': true,
-            'format': 'ddd D MMM YYYY HH:mm',
-            //'timePicker': true,
+            'format': 'ddd D MMM YYYY',
+            'timePicker': true,
             'showDropdowns': true,
-            'timePicker24Hour': true,
+            //'timePicker24Hour': true,
             //'minDate': '2022-05-10',
             //'maxDate': '2022-07-30',
             //'daysOfWeekDisabled': [3,4],
             //'datesDisabled': ['2023-05-05', '2023-08-15'],
-            'displayTodaysDate': true,
+            'displayDate': true,
             'today': true,
             'clear': true,
             'cancel': true,
@@ -84,18 +66,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function afterInit(datepicker, startDate) {
 
-         if (datepicker.getHostData().name == 'departure') {
-         console.log(datepicker.getHostData());
-             datepicker.setParams({'timePicker': true, 'showDropdowns': false});
+         /*if (datepicker.getHostAttributes().name == 'departure') {
+             datepicker.setParams({
+                 'timePicker': true, 
+                 'showDropdowns': false, 
+                 'format': 'ddd D MMM YYYY hh:mm a'
+                 });
              datepicker.render();
+             datepicker.startingDate = '2023-09-27 00:42';
          }
+
+         if (datepicker.getHostAttributes().name == 'arrival') {
+             datepicker.setParams({
+                 //'minDate': '2022-05-10',
+                 //'maxDate': '2022-07-30',
+                 'daysOfWeekDisabled': [3,4],
+                 'datesDisabled': ['2023-05-05', '2023-08-15'],
+                 'displayDate': false,
+                 'timePicker': true, 
+                 'format': 'ddd D MMM YYYY hh:mm a'
+                 });
+
+             //datepicker.startingDate = '2022-05-10 00:42';
+             //datepicker.clear();
+             datepicker.render();
+
+         }*/
          //datepicker.startDate('2023-09-27 15:22');
-         //datepicker.startingDate = '2023-09-27 00:42';
          //elem.value = param;
     }
 
-    //console.log(elems[0]);
-    //console.log(elems[1].getHost());
     document.addEventListener('beforeSetDate', function(evt) {
         //console.log(dayjs(evt.detail).format('YYYY-MM-DD'));
         console.log(evt.detail);
