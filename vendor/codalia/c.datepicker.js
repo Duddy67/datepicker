@@ -74,7 +74,7 @@ const C_Datepicker = (function() {
         _(_key).params.maxDate = params.maxDate === undefined ? null : params.maxDate;
         _(_key).params.daysOfWeekDisabled = params.daysOfWeekDisabled === undefined ? null : params.daysOfWeekDisabled;
         _(_key).params.datesDisabled = params.datesDisabled === undefined ? null : params.datesDisabled;
-        _(_key).params.displayDate = params.displayDate === undefined ? false : params.displayDate;
+        _(_key).params.displayStartingDate = params.displayStartingDate === undefined ? false : params.displayStartingDate;
         _(_key).params.today = params.today === undefined ? false : params.today;
         _(_key).params.clear = params.clear === undefined ? false : params.clear;
         _(_key).params.cancel = params.cancel === undefined ? false : params.cancel;
@@ -586,7 +586,7 @@ const C_Datepicker = (function() {
      * Called just one time through the callback function.
      */
     function _setStartingDate(_, date) {
-        if (_(_key).params.displayDate) {
+        if (_(_key).params.displayStartingDate) {
             _getHostElement(_).value = dayjs(date).format(_(_key).params.format);
         }
 
@@ -618,6 +618,7 @@ const C_Datepicker = (function() {
 
         // Create a div container for the datepicker.
         this._(_key).datepicker = document.createElement('div');
+        this._(_key).datepicker.classList.add('datepicker-container');
         // Insert the datepicker in the container.
         this._(_key).datepicker.insertAdjacentHTML('afterbegin', _renderDatepicker(this._));
         // Insert the div container after the given element.
@@ -627,16 +628,14 @@ const C_Datepicker = (function() {
 
         // Delegate the click event to the datepicker element to check whenever an element is clicked.
         this._(_key).datepicker.addEventListener('click', this, false);
-        //document.addEventListener('click', this, false);
 
         this.handleEvent = function(evt) {
-            //console.log(this._(_key).name);
             // Check the day (make sure it's not disabled)
             if (evt.target.classList.contains('day') && !evt.target.classList.contains('disabled')) {
                 _setDate(this._, evt.target.dataset.date);
 
-                // unselect the old selected day.
-                let old = _getHostElement(this._).querySelector('.selected');
+                // unselect the old selected day in the datepicker grid.
+                let old = this._(_key).datepicker.querySelector('.datepicker-grid .selected');
 
                 if (old) {
                    old.classList.remove('selected');
@@ -716,10 +715,10 @@ const C_Datepicker = (function() {
         this._(_key).beforeTodayEvent = new CustomEvent('beforeToday', {detail: {datepicker: this, date: null, time: null}});
         this._(_key).afterTodayEvent = new CustomEvent('afterToday', {detail: {datepicker: this}});
 
-        if (this._(_key).params.displayDate) {
+        /*if (this._(_key).params.displayStartingDate) {
             // By default display the today's date.
             _setDate(this._, dayjs().valueOf());
-        }
+        }*/
 
         // Run the given callback function.
         if (callback !== undefined) {
