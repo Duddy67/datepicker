@@ -287,7 +287,7 @@ const C_Datepicker = (function() {
         // Get the selected date from the given timestamp.
         date = dayjs(timestamp).format('YYYY-MM-DD');
         // Add the time if needed.
-        date = _(_key).params.timePicker ? date + ' ' + _getTime(_, true) : date;
+        date = _(_key).params.timePicker ? date + ' ' + _getTime(_) : date;
         _getHostElement(_).value = dayjs(date).format(_(_key).params.format);
 
         // Fire the afterSetDate event with the newly selected date.
@@ -334,7 +334,7 @@ const C_Datepicker = (function() {
      * Returns the selected time into the HH:mm or hh:mm a format 
      * according to the meridiem optional parameter.
      */
-    function _getTime(_, meridiem = false) {
+    function _getTime(_) {
         // Make sure the drop down lists of time exist.
         if (_(_key).params.timePicker) {
             let hour = _(_key).datepicker.querySelector('[name="hours"]').value;
@@ -342,19 +342,20 @@ const C_Datepicker = (function() {
             const TwelveHourClock = _(_key).params.timePicker24Hour ? false : true;
 
             // Check for meridiem format (am / pm)
-            if (TwelveHourClock && !meridiem) {
+            if (TwelveHourClock) {
                 // Convert hour into 24 hour format.
                 if (_(_key).datepicker.querySelector('[name="meridiems"]').value == 'pm') {
-                    hour = hour < 12 ? +hour + 12 : 0;
+                    hour = hour < 12 ? +hour + 12 : 12;
+                }
+                // am
+                else {
+                    // 12 am is midnight in 12 hour clock. Thus zero in 24 hour clock. 
+                    hour = hour < 12 ? hour : 0;
+
                 }
             }
 
-            hour = hour < 10 ? '0' + hour : hour;
-            minute = minute < 10 ? '0' + minute : minute;
-
-            const time = TwelveHourClock && meridiem ? hour + ':' + minute + ' ' + _(_key).datepicker.querySelector('[name="meridiems"]').value : hour + ':' + minute;
-
-            return time;
+            return hour + ':' + minute;
         }
 
         return null;
@@ -656,7 +657,7 @@ const C_Datepicker = (function() {
                 }
             }
 
-            // Check for buttons and drop down lists.
+            // Check for button.
 
             if (evt.target.classList.contains('prev-button')) {
                 _setToPrevMonth(this._);
@@ -665,16 +666,6 @@ const C_Datepicker = (function() {
 
             if (evt.target.classList.contains('next-button')) {
                 _setToNextMonth(this._);
-                _updateDatepicker(this._);
-            }
-
-            if (this._(_key).params.showDropdowns && evt.target.classList.contains('months')) {
-                _changeMonth(this._);
-                _updateDatepicker(this._);
-            }
-
-            if (this._(_key).params.showDropdowns && evt.target.classList.contains('years')) {
-                _changeYear(this._);
                 _updateDatepicker(this._);
             }
 
@@ -692,8 +683,8 @@ const C_Datepicker = (function() {
             }
         }
 
-        // Hide or show the datepicker according to where the user clicks (outside the datepicker or inside the host input element).
-        function myFunc(evt) {
+        // Show or hide the datepicker according to where the user clicks (outside the datepicker or inside the host input element).
+        function showHide(evt) {
             // The clicked target is not the input host and is not contained into the datepicker element.
             if (evt.target !== _getHostElement(this._) && !this._(_key).datepicker.contains(evt.target)) {
                 this._(_key).datepicker.style.display = 'none';
@@ -705,7 +696,22 @@ const C_Datepicker = (function() {
             }
         }
 
-        document.addEventListener('click', myFunc.bind(this), false);
+        document.addEventListener('click', showHide.bind(this), false);
+
+        // Set the month and year attributes of the datepicker whenever the month and year drop down lists change.
+        function setMonthYear(evt) {
+            if (this._(_key).params.showDropdowns && evt.target.classList.contains('months')) {
+                _changeMonth(this._);
+                _updateDatepicker(this._);
+            }
+
+            if (this._(_key).params.showDropdowns && evt.target.classList.contains('years')) {
+                _changeYear(this._);
+                _updateDatepicker(this._);
+            }
+        }
+
+        document.addEventListener('change', setMonthYear.bind(this), false);
 
         // Create and initialise the custom events
         this._(_key).beforeSetDateEvent = new CustomEvent('beforeSetDate', {detail: {datepicker: this, date: null, time: null}});
