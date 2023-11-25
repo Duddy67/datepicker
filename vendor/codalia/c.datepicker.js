@@ -1,3 +1,8 @@
+const locales = {
+    'en': {'today': 'Today', 'clear': 'Clear', 'cancel': 'Cancel'},
+    'fr': {'today': 'Aujourd\'hui', 'clear': 'Effacer', 'cancel': 'Annuler'},
+};
+
 // Anonymous function with namespace.
 const C_Datepicker = (function() {
     // The private key that gives access to the storage for private properties.
@@ -61,6 +66,7 @@ const C_Datepicker = (function() {
      */
     function _initParams(_, params) {
         _(_key).params.locale = params.locale === undefined ? 'en' : params.locale;
+        _(_key).params.locales = locales[_(_key).params.locale] === undefined ? locales.en : locales[_(_key).params.locale];
         _(_key).params.autoHide = params.autoHide === undefined ? false : params.autoHide;
         _(_key).params.timePicker = params.timePicker === undefined ? false : params.timePicker;
         // Set the datepicker default format.
@@ -310,7 +316,6 @@ const C_Datepicker = (function() {
         _updateDatepicker(_);
 
         document.dispatchEvent(_(_key).afterClearEvent);
-
     }
 
     function _setToday(_) {
@@ -331,8 +336,7 @@ const C_Datepicker = (function() {
     }
 
     /*
-     * Returns the selected time into the HH:mm or hh:mm a format 
-     * according to the meridiem optional parameter.
+     * Returns the selected time into the HH:mm format.
      */
     function _getTime(_) {
         // Make sure the drop down lists of time exist.
@@ -470,15 +474,15 @@ const C_Datepicker = (function() {
         html += `<div class="datepicker-controls">`;
 
         if (_(_key).params.today) {
-            html += `<button type="button" class="btn btn-success today" tabindex="-1" >Today</button>`;
+            html += `<button type="button" class="ctrl-button today" tabindex="-1" >`+ _(_key).params.locales.today +`</button>`;
         }
 
         if (_(_key).params.clear) {
-            html += `<button type="button" class="btn btn-info clear" tabindex="-1" >Clear</button>`;
+            html += `<button type="button" class="ctrl-button clear" tabindex="-1" >`+ _(_key).params.locales.clear +`</button>`;
         }
 
         if (_(_key).params.cancel) {
-            html += `<button type="button" class="btn btn-danger cancel" tabindex="-1" >Cancel</button>`;
+            html += `<button type="button" class="ctrl-button cancel" tabindex="-1" >`+ _(_key).params.locales.cancel +`</button>`;
         }
 
         html += `</div></div></div>`;
@@ -721,11 +725,6 @@ const C_Datepicker = (function() {
         this._(_key).beforeTodayEvent = new CustomEvent('beforeToday', {detail: {datepicker: this, date: null, time: null}});
         this._(_key).afterTodayEvent = new CustomEvent('afterToday', {detail: {datepicker: this}});
 
-        /*if (this._(_key).params.displayStartingDate) {
-            // By default display the today's date.
-            _setDate(this._, dayjs().valueOf());
-        }*/
-
         // Run the given callback function.
         if (callback !== undefined) {
             callback(this);
@@ -735,8 +734,6 @@ const C_Datepicker = (function() {
                 _setStartingDate(this._, this.startingDate);
             }
         }
-
-        //return this;
     };
 
     // Public methods.
