@@ -754,6 +754,10 @@ const C_Datepicker = (function() {
             }
         },
 
+        getParams: function(name) {
+            return name === undefined ? this._(_key).params : this._(_key).params[name];
+        },
+
         // Rebuilds all the datepicker.
         render: function() {
             this._(_key).datepicker.innerHTML = _renderDatepicker(this._);

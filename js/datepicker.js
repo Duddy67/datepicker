@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //console.log(dayjs('2011-1-1').isSame(dayjs('2011-01-01', 'day')));
     //console.log(dayjs(1694556000000).format('YYYY-MM-DD'));
     //console.log('day: '+dayjs('2023-10-2 15:54').format('D MM YYYY hh:mm'));
+    console.log(dayjs('2011-01-15').format('YYYY-MM-DD HH:mm'));
 
 
     //let elem = document.getElementById('departure');
