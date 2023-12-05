@@ -296,6 +296,28 @@ const C_Datepicker = (function() {
         date = _(_key).params.timePicker ? date + ' ' + _getTime(_) : date;
         _getHostElement(_).value = dayjs(date).format(_(_key).params.format);
 
+        // Unselect the old selected day in the datepicker grid.
+        let oldDay = _(_key).datepicker.querySelector('.datepicker-grid .selected');
+
+        if (oldDay) {
+           oldDay.classList.remove('selected');
+        }
+
+        // Add the class to the newly selected day.
+        let newDay = _(_key).datepicker.querySelector('[data-date="' + timestamp + '"]');
+
+        if (newDay){
+            newDay.classList.add('selected');
+        } 
+
+        // Update the selected day attribute.
+        _(_key).selectedDay = dayjs(date).format('YYYY-M-D');
+
+        // As well as the selected time attribute (if timePicker is active).
+        if (_(_key).params.timePicker) {
+            _(_key).selectedTime = _getTime(_);
+        }
+
         // Fire the afterSetDate event with the newly selected date.
         _(_key).afterSetDateEvent.detail.date = dayjs(date).format('YYYY-MM-DD');
         time = _(_key).params.timePicker ? _getTime(_) : null;
@@ -326,11 +348,9 @@ const C_Datepicker = (function() {
         _(_key).beforeTodayEvent.detail.time = time;
         document.dispatchEvent(_(_key).beforeTodayEvent);
 
-        // Set the datepicker to the current date.
-        _(_key).selectedDay = dayjs().format('YYYY-M-D');
-        _(_key).selectedTime = _(_key).params.timePicker ? dayjs().format('HH:mm') : null;
-
-        _getHostElement(_).value = dayjs().format(_(_key).params.format);
+        const today = dayjs().format("YYYY-MM-DD");
+        const timestamp = dayjs(today).valueOf();
+        _setDate(_, timestamp);
 
         document.dispatchEvent(_(_key).afterTodayEvent);
     }
@@ -644,23 +664,6 @@ const C_Datepicker = (function() {
             if (evt.target.classList.contains('day') && !evt.target.classList.contains('disabled')) {
                 _setDate(this._, evt.target.dataset.date);
 
-                // unselect the old selected day in the datepicker grid.
-                let old = this._(_key).datepicker.querySelector('.datepicker-grid .selected');
-
-                if (old) {
-                   old.classList.remove('selected');
-                }
-
-                // Add the class to the newly selected day.
-                evt.target.classList.add('selected');
-                // Update the selected day attribute.
-                this._(_key).selectedDay = dayjs(+evt.target.dataset.date).format('YYYY-M-D');
-
-                // As well as the selected time attribute (if timePicker is active).
-                if (this._(_key).params.timePicker) {
-                    this._(_key).selectedTime = _getTime(this._);
-                }
-
                 if (this._(_key).params.autoHide) {
                     this._(_key).datepicker.style.display = 'none';
                 }
@@ -684,11 +687,19 @@ const C_Datepicker = (function() {
 
             if (evt.target.classList.contains('clear')) {
                 _clearDate(this._);
+
+                if (this._(_key).params.autoHide) {
+                    this._(_key).datepicker.style.display = 'none';
+                }
             }
 
             if (evt.target.classList.contains('today')) {
                 _setToday(this._);
                 _updateDatepicker(this._);
+
+                if (this._(_key).params.autoHide) {
+                    this._(_key).datepicker.style.display = 'none';
+                }
             }
         }
 

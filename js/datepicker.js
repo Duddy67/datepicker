@@ -5,8 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('month: '+dayjs().month());
     console.log('day: '+dayjs('2023-10-24').day());
     console.log(dayjs.weekdaysShort());
-    let timestamp = dayjs('2023-10-01').valueOf();
-    console.log(timestamp);
     console.log(dayjs(timestamp).format("YYYY-MM-DD"));
     const a = dayjs('2019-01-31');
     const b = a.subtract(1, 'month');
@@ -23,7 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     //console.log(dayjs('2011-1-1').isSame(dayjs('2011-01-01', 'day')));
     //console.log(dayjs(1694556000000).format('YYYY-MM-DD'));
     //console.log('day: '+dayjs('2023-10-2 15:54').format('D MM YYYY hh:mm'));
-    console.log(dayjs('2011-01-15').format('YYYY-MM-DD HH:mm'));
+    //console.log(dayjs('2011-01-15').format('YYYY-MM-DD HH:mm'));
+    const today = dayjs().format("YYYY-MM-DD");
+    let timestamp = dayjs(today).valueOf();
+    console.log(timestamp);
 
 
     //let elem = document.getElementById('departure');
