@@ -359,6 +359,10 @@ const C_Datepicker = (function() {
                 }
             }
 
+            // Check for zerofill.
+            hour = hour < 10 ? '0' + hour : hour;
+            minute = minute < 10 ? '0' + minute : minute;
+
             return hour + ':' + minute;
         }
 
@@ -629,7 +633,8 @@ const C_Datepicker = (function() {
         // Insert the div container after the given element.
         _getHostElement(this._).insertAdjacentElement('afterend', this._(_key).datepicker);
 
-        this.hideDatepicker();
+        // Hide the datepicker.
+        this.hide();
 
         // Delegate the click event to the datepicker element to check whenever an element is clicked.
         this._(_key).datepicker.addEventListener('click', this, false);
@@ -767,11 +772,11 @@ const C_Datepicker = (function() {
             _clearDate(this._);
         },
 
-        showDatepicker: function() {
+        show: function() {
             this._(_key).datepicker.style.display = 'block';
         },
 
-        hideDatepicker: function() {
+        hide: function() {
             this._(_key).datepicker.style.display = 'none';
         },
 
@@ -779,8 +784,8 @@ const C_Datepicker = (function() {
             return _getHostElement(this._);
         },
 
-        getHostAttributes: function() {
-            return this._(_key).host;
+        getHostAttributes: function(name) {
+            return name === undefined ? this._(_key).host : this._(_key).host[name];
         },
     };
 
