@@ -1,97 +1,216 @@
-// Anonymous function with namespace.
-const C_Datepicker = (function() {
-    // The private key that gives access to the storage for private properties.
-    const _key = {};
 
-    const _private = function() { 
-        // The storage object for private properties.
-        const privateProperties = {};
+class C_Datepicker {
 
-        return function(key) {
-            // Compare the given key against the actual private key. 
-            if (key === _key) {
-                return privateProperties;
-            } 
+    #params;
+    #rows;
+    #columns;
+    #minutes;
+    #hours;
+    #months;
+    #years;
+    #today;
+    #host;
+    #datepicker;
+    #selectedDay;
+    #selectedTime;
+    #dpYear;
+    #dpMonth;
+    // Custom events triggered before or after some functions.
+    #beforeSetDateEvent;
+    #afterSetDateEvent;
+    #beforeClearEvent;
+    #afterClearEvent;
+    #beforeTodayEvent;
+    #afterTodayEvent;
 
-            // If the user of the class tries to access private
-            // properties, they won't have the access to the `key`
-            console.error('Cannot access private properties');
-            return undefined;
-        };
-    };
+    // The datepicker constructor.
+    constructor(element, params, callback) {
+        // Initialize both private properties and parameters.
+        this.#initProperties(element);
+        this.#initParams(params);
+
+        // Some DayJS functions require the locale data plugin.
+        dayjs.extend(window.dayjs_plugin_localeData);
+        // Set the locale for the datepicker.
+        dayjs.locale(this.#params.locale);
+
+        this.#setYears();
+        this.#setMonths();
+        this.#setDates();
+
+        // Create a div container for the datepicker.
+        this.#datepicker = document.createElement('div');
+        this.#datepicker.classList.add('datepicker-container');
+        // Insert the datepicker in the container.
+        this.#datepicker.insertAdjacentHTML('afterbegin', this.#renderDatepicker());
+        // Insert the div container after the given element.
+        this.#getHostElement().insertAdjacentElement('afterend', this.#datepicker);
+
+        // Hide the datepicker.
+        this.hide();
+
+        // Delegate the click event to the datepicker element to check whenever an element is clicked.
+        this.#datepicker.addEventListener('click', this, false);
+
+        this.handleEvent = function(evt) {
+            // Check the day (make sure it's not disabled)
+            if (evt.target.classList.contains('day') && !evt.target.classList.contains('disabled')) {
+                this.#setDate(evt.target.dataset.date);
+
+                if (this.#params.autoHide) {
+                    this.#datepicker.style.display = 'none';
+                }
+            }
+
+            // Check for button.
+
+            if (evt.target.classList.contains('prev-button')) {
+                this.#setToPrevMonth();
+                this.#updateDatepicker();
+            }
+
+            if (evt.target.classList.contains('next-button')) {
+                this.#setToNextMonth();
+                this.#updateDatepicker();
+            }
+
+            if (evt.target.classList.contains('cancel')) {
+                this.#datepicker.style.display = 'none';
+            }
+
+            if (evt.target.classList.contains('clear')) {
+                this.#clearDate();
+
+                if (this.#params.autoHide) {
+                    this.#datepicker.style.display = 'none';
+                }
+            }
+
+            if (evt.target.classList.contains('today')) {
+                this.#setToday();
+                this.#updateDatepicker();
+
+                if (this.#params.autoHide) {
+                    this.#datepicker.style.display = 'none';
+                }
+            }
+        }
+
+        // Show or hide the datepicker according to where the user clicks (outside the datepicker or inside the host input element).
+        function showHide(evt) {
+            // The clicked target is not the input host and is not contained into the datepicker element.
+            if (evt.target !== this.#getHostElement() && !this.#datepicker.contains(evt.target)) {
+                this.#datepicker.style.display = 'none';
+            }
+
+            // The user has clicked into the host input element.
+            if (evt.target === this.#getHostElement()) {
+                this.#datepicker.style.display = 'block';
+            }
+        }
+
+        document.addEventListener('click', showHide.bind(this), false);
+
+        // Set the month and year attributes of the datepicker whenever the month and year drop down lists change.
+        function setMonthYear(evt) {
+            if (this.#params.showDropdowns && evt.target.classList.contains('months')) {
+                this.#changeMonth();
+                this.#updateDatepicker();
+            }
+
+            if (this.#params.showDropdowns && evt.target.classList.contains('years')) {
+                this.#changeYear();
+                this.#updateDatepicker();
+            }
+        }
+
+        document.addEventListener('change', setMonthYear.bind(this), false);
+
+        // Create and initialise the custom events
+        this.#beforeSetDateEvent = new CustomEvent('beforeSetDate', {detail: {datepicker: this, date: null, time: null}});
+        this.#afterSetDateEvent = new CustomEvent('afterSetDate', {detail: {datepicker: this, date: null, time: null}});
+        this.#beforeClearEvent = new CustomEvent('beforeClear', {detail: {datepicker: this, date: null, time: null}});
+        this.#afterClearEvent = new CustomEvent('afterClear', {detail: {datepicker: this}});
+        this.#beforeTodayEvent = new CustomEvent('beforeToday', {detail: {datepicker: this, date: null, time: null}});
+        this.#afterTodayEvent = new CustomEvent('afterToday', {detail: {datepicker: this}});
+
+        // Run the given callback function.
+        if (callback !== undefined) {
+            callback(this);
+
+            // Check for a possible starting date.
+            if (this.startingDate !== undefined) {
+                this.#setStartingDate(this.startingDate);
+            }
+        }
+    }
+
 
     // Private functions.
 
-    function _initProperties(_, element) {
-        _(_key).rows = 6;
-        _(_key).columns = 7;
-        _(_key).params = {};
-        _(_key).minutes = 60;
-        _(_key).hours = 24;
-        _(_key).months = [];
-        _(_key).years = [];
-        _(_key).today = dayjs().format('YYYY-M-D');
+    #initProperties(element) {
+        this.#rows = 6;
+        this.#columns = 7;
+        this.#params = {};
+        this.#minutes = 60;
+        this.#hours = 24;
+        this.#months = [];
+        this.#years = [];
+        this.#today = dayjs().format('YYYY-M-D');
 
         // Get the host element main attributes. 
         const host = {'name': null, 'id': null, 'classes': null};
         host.name = element.getAttribute('name');
         host.id = element.getAttribute('id');
         host.classes = element.classList.value;
-        _(_key).host = host;
+        this.#host = host;
         // The div element that contains the datepicker.
-        _(_key).datepicker;
-        _(_key).selectedDay = null;
-        _(_key).selectedTime = null;
+        this.#datepicker;
+        this.#selectedDay = null;
+        this.#selectedTime = null;
         // The year to use in the datepicker (useful in case of leap-years).
-        _(_key).dpYear = dayjs().format('YYYY');
+        this.#dpYear = dayjs().format('YYYY');
         // The month to use in the datepicker and that contains the days to display in the grid.
-        _(_key).dpMonth = dayjs().format('M');
-        // Custom events triggered before or after some functions.
-        _(_key).beforeSetDateEvent;
-        _(_key).afterSetDateEvent;
-        _(_key).beforeClearEvent;
-        _(_key).afterClearEvent;
-        _(_key).beforeTodayEvent;
-        _(_key).afterTodayEvent;
+        this.#dpMonth = dayjs().format('M');
     }
 
     /*
      * Initializes the datepicker with the given parameters.
      * Sets it to a default value when no parameter is given.
      */
-    function _initParams(_, params) {
-        _(_key).params.locale = params.locale === undefined ? 'en' : params.locale;
-        _(_key).params.autoHide = params.autoHide === undefined ? false : params.autoHide;
-        _(_key).params.timePicker = params.timePicker === undefined ? false : params.timePicker;
+    #initParams(params) {
+        this.#params.locale = params.locale === undefined ? 'en' : params.locale;
+        this.#params.autoHide = params.autoHide === undefined ? false : params.autoHide;
+        this.#params.timePicker = params.timePicker === undefined ? false : params.timePicker;
         // Set the datepicker default format.
-        let format = _(_key).params.timePicker ? 'YYYY-MM-DD HH:mm' : 'YYYY-MM-DD';
-        _(_key).params.format = params.format === undefined ? format : params.format;
-        _(_key).params.showDropdowns = params.showDropdowns === undefined ? false : params.showDropdowns;
-        _(_key).params.timePicker24Hour = params.timePicker24Hour === undefined ? false : params.timePicker24Hour;
-        _(_key).params.minYear = params.minYear === undefined ? 100 : params.minYear;
-        _(_key).params.maxYear = params.maxYear === undefined ? 100 : params.maxYear;
-        _(_key).params.minDate = params.minDate === undefined ? null : params.minDate;
-        _(_key).params.maxDate = params.maxDate === undefined ? null : params.maxDate;
-        _(_key).params.daysOfWeekDisabled = params.daysOfWeekDisabled === undefined ? null : params.daysOfWeekDisabled;
-        _(_key).params.datesDisabled = params.datesDisabled === undefined ? null : params.datesDisabled;
-        _(_key).params.displayStartingDate = params.displayStartingDate === undefined ? false : params.displayStartingDate;
-        _(_key).params.today = params.today === undefined ? false : params.today;
-        _(_key).params.clear = params.clear === undefined ? false : params.clear;
-        _(_key).params.cancel = params.cancel === undefined ? false : params.cancel;
+        let format = this.#params.timePicker ? 'YYYY-MM-DD HH:mm' : 'YYYY-MM-DD';
+        this.#params.format = params.format === undefined ? format : params.format;
+        this.#params.showDropdowns = params.showDropdowns === undefined ? false : params.showDropdowns;
+        this.#params.timePicker24Hour = params.timePicker24Hour === undefined ? false : params.timePicker24Hour;
+        this.#params.minYear = params.minYear === undefined ? 100 : params.minYear;
+        this.#params.maxYear = params.maxYear === undefined ? 100 : params.maxYear;
+        this.#params.minDate = params.minDate === undefined ? null : params.minDate;
+        this.#params.maxDate = params.maxDate === undefined ? null : params.maxDate;
+        this.#params.daysOfWeekDisabled = params.daysOfWeekDisabled === undefined ? null : params.daysOfWeekDisabled;
+        this.#params.datesDisabled = params.datesDisabled === undefined ? null : params.datesDisabled;
+        this.#params.displayStartingDate = params.displayStartingDate === undefined ? false : params.displayStartingDate;
+        this.#params.today = params.today === undefined ? false : params.today;
+        this.#params.clear = params.clear === undefined ? false : params.clear;
+        this.#params.cancel = params.cancel === undefined ? false : params.cancel;
     }
 
     /*
      * Returns the host input element.
      */
-    function _getHostElement(_) {
+    #getHostElement() {
         // Try first to get the host element by its id.
-        if (_(_key).host.id) {
-            return document.getElementById(_(_key).host.id);
+        if (this.#host.id) {
+            return document.getElementById(this.#host.id);
         }
 
         // Next, try by its name.
-        if (_(_key).host.name) {
-            return document.getElementsByName(_(_key).host.name)[0];
+        if (this.#host.name) {
+            return document.getElementsByName(this.#host.name)[0];
         }
 
         // The host element can't be find.
@@ -101,13 +220,13 @@ const C_Datepicker = (function() {
     /*
      * Sets the month names.
      */
-    function _setMonths(_) {
-        if (_(_key).months.length === 0) {
+    #setMonths() {
+        if (this.#months.length === 0) {
             //
             for (let i = 0; i < 12; i++) {
                 let month = i + 1;
                 // Use a year in the past and set a date to the first day of each month to get the month name.
-                _(_key).months[i] = dayjs('2001-' + month + '-1').format('MMMM');
+                this.#months[i] = dayjs('2001-' + month + '-1').format('MMMM');
             }
         }
     }
@@ -115,72 +234,72 @@ const C_Datepicker = (function() {
     /*
      * Sets the year range to use in the datepicker.
      */
-    function _setYears(_) {
+    #setYears() {
         // Check for the min and max year parameters.
-        let minYear = dayjs().subtract(_(_key).params.minYear, 'year').format('YYYY');
-        const maxYear = dayjs().add(_(_key).params.maxYear, 'year').format('YYYY');
+        let minYear = dayjs().subtract(this.#params.minYear, 'year').format('YYYY');
+        const maxYear = dayjs().add(this.#params.maxYear, 'year').format('YYYY');
 
         while (minYear <= maxYear) {
-            _(_key).years.push(minYear++);
+            this.#years.push(minYear++);
         }
     }
 
-    function _setToNextMonth(_) {
-        _(_key).dpMonth = Number(_(_key).dpMonth) + 1;
+    #setToNextMonth() {
+        this.#dpMonth = Number(this.#dpMonth) + 1;
 
         // Check for the next year.
-        if (_(_key).dpMonth > 12) {
-            _(_key).dpMonth = 1;
-            _(_key).dpYear = Number(_(_key).dpYear) + 1;
+        if (this.#dpMonth > 12) {
+            this.#dpMonth = 1;
+            this.#dpYear = Number(this.#dpYear) + 1;
         }
     }
 
-    function _setToPrevMonth(_) {
-        _(_key).dpMonth = Number(_(_key).dpMonth) - 1;
+    #setToPrevMonth() {
+        this.#dpMonth = Number(this.#dpMonth) - 1;
 
         // Check for the previous year.
-        if (_(_key).dpMonth < 1) {
-            _(_key).dpMonth = 12;
-            _(_key).dpYear = Number(_(_key).dpYear) - 1;
+        if (this.#dpMonth < 1) {
+            this.#dpMonth = 12;
+            this.#dpYear = Number(this.#dpYear) - 1;
         }
     }
 
     /*
      * Gets the days of the week used in the datepicker grid.
      */
-    function _getDaysOfWeek() {
+    #getDaysOfWeek() {
         return dayjs.weekdaysShort();
     }
 
     /*
      * Sets the month selected through the month drop down list.
      */
-    function _changeMonth(_) {
-        const selectedMonth = parseInt(_(_key).datepicker.querySelector('.months').value) + 1;
+    #changeMonth() {
+        const selectedMonth = parseInt(this.#datepicker.querySelector('.months').value) + 1;
         // Update the month to display with the newly selected month.
-        _(_key).dpMonth = selectedMonth;
+        this.#dpMonth = selectedMonth;
     }
 
     /*
      * Sets the year selected through the year drop down list.
      */
-    function _changeYear(_) {
-        const selectedYear = _(_key).datepicker.querySelector('.years').value;
+    #changeYear() {
+        const selectedYear = this.#datepicker.querySelector('.years').value;
         // Update the month to display with the newly selected year.
-        _(_key).dpYear = selectedYear;
+        this.#dpYear = selectedYear;
     }
 
     /*
      * Computes the days contained in the datepicker grid for a given month.
      */
-    function _getDays(_) {
+    #getDays() {
         const days = [];
         // Get the number of days in the month to display.
-        const nbDays = dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).daysInMonth();
+        const nbDays = dayjs(this.#dpYear + '-' + this.#dpMonth).daysInMonth();
 
         // Figure out what is the first day of the month to display.
         // Returns the day as a number ie: 0 => sunday, 1 => monday ... 6 => saturday.
-        const firstDayOfTheMonth = dayjs(_(_key).dpYear + '-' + _(_key).dpMonth + '-1').day();
+        const firstDayOfTheMonth = dayjs(this.#dpYear + '-' + this.#dpMonth + '-1').day();
 
         // Generate date for each day in the grid.
         let datepicker;
@@ -190,7 +309,7 @@ const C_Datepicker = (function() {
         if (firstDayOfTheMonth > 0) {
 
             // Set the datepicker back a month.
-            datepicker = dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).subtract(1, 'month').format('YYYY-M').split('-');
+            datepicker = dayjs(this.#dpYear + '-' + this.#dpMonth).subtract(1, 'month').format('YYYY-M').split('-');
             // Get the numer of days contained in the previous month.
             const daysInPreviousMonth = dayjs(datepicker[0] + '-' + datepicker[1]).daysInMonth();
 
@@ -205,7 +324,7 @@ const C_Datepicker = (function() {
                 day = i + 1;
 
                 if (day > (daysInPreviousMonth - nbLastDays)) {
-                    days.push(_getDayObject(_, datepicker[0] + '-' + datepicker[1] + '-' + day, 'previous'));
+                    days.push(this.#getDayObject(datepicker[0] + '-' + datepicker[1] + '-' + day, 'previous'));
                 }
             }
         }
@@ -213,18 +332,18 @@ const C_Datepicker = (function() {
         // Loop through the days of the current month.
         for (let i = 0; i < nbDays; i++) {
             day = i + 1;
-            days.push(_getDayObject(_, _(_key).dpYear + '-' + _(_key).dpMonth + '-' + day, 'current'));
+            days.push(this.#getDayObject(this.#dpYear + '-' + this.#dpMonth + '-' + day, 'current'));
         }
 
         // Compute the number of days needed to fill the datepicker grid.
-        const nbDaysInNextMonth = (_(_key).rows * _(_key).columns) - days.length;
+        const nbDaysInNextMonth = (this.#rows * this.#columns) - days.length;
         // Set the datepicker forward a month.
-        datepicker = dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).add(1, 'month').format('YYYY-M').split('-');
+        datepicker = dayjs(this.#dpYear + '-' + this.#dpMonth).add(1, 'month').format('YYYY-M').split('-');
 
         // Loop through the days of the next month.
         for (let i = 0; i < nbDaysInNextMonth; i++) {
             day = i + 1;
-            days.push(_getDayObject(_, datepicker[0] + '-' + datepicker[1] + '-' + day, 'next'));
+            days.push(this.#getDayObject(datepicker[0] + '-' + datepicker[1] + '-' + day, 'next'));
 
             // The datepicker grid is filled.
             if (i > nbDaysInNextMonth) {
@@ -238,18 +357,18 @@ const C_Datepicker = (function() {
     /*
      * Build a day object to use in the datepicker grid.
      */
-    function _getDayObject(_, date, position) {
+    #getDayObject(date, position) {
         // Get the day from the given date.
         let day = date.split('-')[2];
 
-        let today = (date === _(_key).today) ? true : false;
-        let selected = (date === _(_key).selectedDay) ? true : false;
+        let today = (date === this.#today) ? true : false;
+        let selected = (date === this.#selectedDay) ? true : false;
         // Check for the possible min and max dates and set the disabled attribute accordingly.
-        let disabled = (_(_key).params.minDate && dayjs(date).isBefore(_(_key).params.minDate)) || (_(_key).params.maxDate && dayjs(_(_key).params.maxDate).isBefore(date)) ? true : false;
+        let disabled = (this.#params.minDate && dayjs(date).isBefore(this.#params.minDate)) || (this.#params.maxDate && dayjs(this.#params.maxDate).isBefore(date)) ? true : false;
         // Check again for the disabled days of the week (if any).
-        disabled = _(_key).params.daysOfWeekDisabled && _(_key).params.daysOfWeekDisabled.includes(dayjs(date).day()) ? true : disabled;
+        disabled = this.#params.daysOfWeekDisabled && this.#params.daysOfWeekDisabled.includes(dayjs(date).day()) ? true : disabled;
         // Check again for the disabled dates (if any).
-        disabled = _(_key).params.datesDisabled && _(_key).params.datesDisabled.includes(dayjs(date).format('YYYY-MM-DD')) ? true : disabled;
+        disabled = this.#params.datesDisabled && this.#params.datesDisabled.includes(dayjs(date).format('YYYY-MM-DD')) ? true : disabled;
 
         return {'text': day, 'timestamp': dayjs(date).valueOf(), 'month': position, 'today': today, 'selected': selected, 'disabled': disabled};
     }
@@ -257,112 +376,112 @@ const C_Datepicker = (function() {
     /*
      * Sets the datepicker year and month values according to the min and max date parameters.
      */
-    function _setDates(_) {
-        if (_(_key).params.minDate && dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).isBefore(_params.minDate)) {
-            let minDate = dayjs(_(_key).params.minDate).format('YYYY-M').split('-');
-            _(_key).dpYear = minDate[0];
-            _(_key).dpMonth = minDate[1];
+    #setDates() {
+        if (this.#params.minDate && dayjs(this.#dpYear + '-' + this.#dpMonth).isBefore(this.#params.minDate)) {
+            let minDate = dayjs(this.#params.minDate).format('YYYY-M').split('-');
+            this.#dpYear = minDate[0];
+            this.#dpMonth = minDate[1];
         }
 
-        if (_(_key).params.maxDate && dayjs(_(_key).params.maxDate).isBefore(_(_key).dpYear + '-' + _(_key).dpMonth)) {
-            let maxDate = dayjs(_(_key).params.maxDate).format('YYYY-M').split('-');
-            _(_key).dpYear = maxDate[0];
-            _(_key).dpMonth = maxDate[1];
+        if (this.#params.maxDate && dayjs(this.#params.maxDate).isBefore(this.#dpYear + '-' + this.#dpMonth)) {
+            let maxDate = dayjs(this.#params.maxDate).format('YYYY-M').split('-');
+            this.#dpYear = maxDate[0];
+            this.#dpMonth = maxDate[1];
         }
     }
 
     /*
      * Sets the host input value to the newly selected date.
      */
-    function _setDate(_, timestamp) {
+    #setDate(timestamp) {
         // Fire the beforeSetDate event with the old selected date (if any).
-        let date = _(_key).selectedDay ? dayjs(_(_key).selectedDay).format('YYYY-MM-DD') : null;
-        _(_key).beforeSetDateEvent.detail.date = date;
-        let time = date ? _(_key).selectedTime : null;
-        _(_key).beforeSetDateEvent.detail.time = time;
-        document.dispatchEvent(_(_key).beforeSetDateEvent);
+        let date = this.#selectedDay ? dayjs(this.#selectedDay).format('YYYY-MM-DD') : null;
+        this.#beforeSetDateEvent.detail.date = date;
+        let time = date ? this.#selectedTime : null;
+        this.#beforeSetDateEvent.detail.time = time;
+        document.dispatchEvent(this.#beforeSetDateEvent);
 
         // Make sure the given timestamp is of the type number. (Note: add a plus sign to convert into number).
         timestamp = typeof timestamp != 'number' ? +timestamp : timestamp;
         // Get the selected date from the given timestamp.
         date = dayjs(timestamp).format('YYYY-MM-DD');
         // Add the time if needed.
-        date = _(_key).params.timePicker ? date + ' ' + _getTime(_) : date;
-        _getHostElement(_).value = dayjs(date).format(_(_key).params.format);
+        date = this.#params.timePicker ? date + ' ' + this.#getTime() : date;
+        this.#getHostElement().value = dayjs(date).format(this.#params.format);
 
         // Unselect the old selected day in the datepicker grid.
-        let oldDay = _(_key).datepicker.querySelector('.datepicker-grid .selected');
+        let oldDay = this.#datepicker.querySelector('.datepicker-grid .selected');
 
         if (oldDay) {
            oldDay.classList.remove('selected');
         }
 
         // Add the class to the newly selected day.
-        let newDay = _(_key).datepicker.querySelector('[data-date="' + timestamp + '"]');
+        let newDay = this.#datepicker.querySelector('[data-date="' + timestamp + '"]');
 
         if (newDay){
             newDay.classList.add('selected');
         } 
 
         // Update the selected day attribute.
-        _(_key).selectedDay = dayjs(date).format('YYYY-M-D');
+        this.#selectedDay = dayjs(date).format('YYYY-M-D');
 
         // As well as the selected time attribute (if timePicker is active).
-        if (_(_key).params.timePicker) {
-            _(_key).selectedTime = _getTime(_);
+        if (this.#params.timePicker) {
+            this.#selectedTime = this.#getTime();
         }
 
         // Fire the afterSetDate event with the newly selected date.
-        _(_key).afterSetDateEvent.detail.date = dayjs(date).format('YYYY-MM-DD');
-        time = _(_key).params.timePicker ? _getTime(_) : null;
-        _(_key).afterSetDateEvent.detail.time = time;
-        document.dispatchEvent(_(_key).afterSetDateEvent);
+        this.#afterSetDateEvent.detail.date = dayjs(date).format('YYYY-MM-DD');
+        time = this.#params.timePicker ? this.#getTime() : null;
+        this.#afterSetDateEvent.detail.time = time;
+        document.dispatchEvent(this.#afterSetDateEvent);
     }
 
-    function _clearDate(_) {
+    #clearDate() {
         // Fire the beforeClear event with the old selected date.
-        let date = _(_key).selectedDay ? dayjs(_(_key).selectedDay).format('YYYY-MM-DD') : null;
-        _(_key).beforeClearEvent.detail.date = date;
-        let time = date ? _(_key).selectedTime : null;
-        _(_key).beforeClearEvent.detail.time = time;
-        document.dispatchEvent(_(_key).beforeClearEvent);
+        let date = this.#selectedDay ? dayjs(this.#selectedDay).format('YYYY-MM-DD') : null;
+        this.#beforeClearEvent.detail.date = date;
+        let time = date ? this.#selectedTime : null;
+        this.#beforeClearEvent.detail.time = time;
+        document.dispatchEvent(this.#beforeClearEvent);
 
-        _getHostElement(_).value = '';
-        _(_key).selectedDay = null;
-        _updateDatepicker(_);
+        this.#getHostElement().value = '';
+        this.#selectedDay = null;
+        this.#updateDatepicker();
 
-        document.dispatchEvent(_(_key).afterClearEvent);
+        document.dispatchEvent(this.#afterClearEvent);
     }
 
-    function _setToday(_) {
+    #setToday() {
         // Fire the beforeToday event with the old selected date (if any).
-        let date = _(_key).selectedDay ? dayjs(_(_key).selectedDay).format('YYYY-MM-DD') : null;
-        _(_key).beforeTodayEvent.detail.date = date;
-        let time = date ? _(_key).selectedTime : null;
-        _(_key).beforeTodayEvent.detail.time = time;
-        document.dispatchEvent(_(_key).beforeTodayEvent);
+        let date = this.#selectedDay ? dayjs(this.#selectedDay).format('YYYY-MM-DD') : null;
+        this.#beforeTodayEvent.detail.date = date;
+        let time = date ? this.#selectedTime : null;
+        this.#beforeTodayEvent.detail.time = time;
+        document.dispatchEvent(this.#beforeTodayEvent);
 
         const today = dayjs().format("YYYY-MM-DD");
         const timestamp = dayjs(today).valueOf();
-        _setDate(_, timestamp);
+        this.#setDate(timestamp);
 
-        document.dispatchEvent(_(_key).afterTodayEvent);
+        document.dispatchEvent(this.#afterTodayEvent);
     }
 
     /*
      * Returns the selected time into the HH:mm format.
      */
-    function _getTime(_) {
+    #getTime() {
         // Make sure the drop down lists of time exist.
-        if (_(_key).params.timePicker) {
-            let hour = _(_key).datepicker.querySelector('[name="hours"]').value;
-            let minute = _(_key).datepicker.querySelector('[name="minutes"]').value;
-            const TwelveHourClock = _(_key).params.timePicker24Hour ? false : true;
+        if (this.#params.timePicker) {
+            let hour = this.#datepicker.querySelector('[name="hours"]').value;
+            let minute = this.#datepicker.querySelector('[name="minutes"]').value;
+            const TwelveHourClock = this.#params.timePicker24Hour ? false : true;
 
             // Check for meridiem format (am / pm)
             if (TwelveHourClock) {
                 // Convert hour into 24 hour format.
-                if (_(_key).datepicker.querySelector('[name="meridiems"]').value == 'pm') {
+                if (this.#datepicker.querySelector('[name="meridiems"]').value == 'pm') {
                     hour = hour < 12 ? +hour + 12 : 12;
                 }
                 // am
@@ -386,49 +505,49 @@ const C_Datepicker = (function() {
     /*
      * Builds and returns the datepicker.
      */
-    function _renderDatepicker(_) {
+    #renderDatepicker() {
         let html = `<div class="datepicker datepicker-dropdown datepicker-orient-left datepicker-orient-bottom">`+
                    `<div class="datepicker-picker">`+`<div class="datepicker-header">`+`<div class="datepicker-title" style="display: none;"></div>`+
                    `<div class="datepicker-controls">`;
 
         // Check for the min date and disable the previous button accordingly.
-        let disabled = (_(_key).params.minDate && dayjs(dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).subtract(1, 'month').format('YYYY-M')).isBefore(_(_key).params.minDate)) ? 'disabled' : '';
+        let disabled = (this.#params.minDate && dayjs(dayjs(this.#dpYear + '-' + this.#dpMonth).subtract(1, 'month').format('YYYY-M')).isBefore(this.#params.minDate)) ? 'disabled' : '';
         html += `<button type="button" class="button prev-button prev-btn" `+ disabled +` tabindex="-1">«</button>`;
 
         // Build both the year and month drop down lists.
-        if (_(_key).params.showDropdowns) {
+        if (this.#params.showDropdowns) {
             html += `<div class="datepicker-dropdown-date"><select name="months" class="months">`;
 
-            for (let i = 0; i < _(_key).months.length; i++) {
-                let selected = i == _(_key).dpMonth - 1 ? 'selected' : '';
-                html += `<option value="` + i + `" ` + selected + `>` + _(_key).months[i] + `</option>`;
+            for (let i = 0; i < this.#months.length; i++) {
+                let selected = i == this.#dpMonth - 1 ? 'selected' : '';
+                html += `<option value="` + i + `" ` + selected + `>` + this.#months[i] + `</option>`;
             }
 
             html += `</select><select name="years" class="years">`;
 
-            for (let i = 0; i < _(_key).years.length; i++) {
-                let selected = _(_key).years[i] == _(_key).dpYear ? 'selected' : '';
-                html += `<option value="` + _(_key).years[i] + `" ` + selected + `>` + _(_key).years[i] + `</option>`;
+            for (let i = 0; i < this.#years.length; i++) {
+                let selected = this.#years[i] == this.#dpYear ? 'selected' : '';
+                html += `<option value="` + this.#years[i] + `" ` + selected + `>` + this.#years[i] + `</option>`;
             }
 
             html += `</select></div>`;
         }
         else {
-            html += `<button type="button" class="button view-switch" tabindex="-1">`+dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).format('MMMM YYYY')+`</button>`;
+            html += `<button type="button" class="button view-switch" tabindex="-1">`+dayjs(this.#dpYear + '-' + this.#dpMonth).format('MMMM YYYY')+`</button>`;
         }
 
         // Check for the max date and disable the next button accordingly.
-        disabled = (_(_key).params.maxDate && dayjs(dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).add(1, 'month').format('YYYY-M')).isAfter(_(_key).params.maxDate)) ? 'disabled' : '';
+        disabled = (this.#params.maxDate && dayjs(dayjs(this.#dpYear + '-' + this.#dpMonth).add(1, 'month').format('YYYY-M')).isAfter(this.#params.maxDate)) ? 'disabled' : '';
         html += `<button type="button" class="button next-button next-btn" `+ disabled +` tabindex="-1">»</button>`+`</div></div>`+
                 `<div class="datepicker-main"><div class="datepicker-view"><div class="days"><div class="days-of-week">`;
 
-        _getDaysOfWeek().forEach((day) => {
+        this.#getDaysOfWeek().forEach((day) => {
             html += `<span class="dow">`+day+`</span>`;
         });
 
         html += `</div><div class="datepicker-grid">`;
 
-        const days = _getDays(_);
+        const days = this.#getDays();
         days.forEach((day) => {
             let extra = (day.month != 'current') ? day.month : '';
             extra += (day.today) ? ' today' : '';
@@ -441,20 +560,20 @@ const C_Datepicker = (function() {
                 `<div class="datepicker-footer">`;
 
         // Build the time drop down lists.
-        if (_(_key).params.timePicker) {
+        if (this.#params.timePicker) {
             // Set the time units to explode according to the timePicker24Hour parameter.
-            let format = _(_key).params.timePicker24Hour ? 'H:m' : 'h:m:a';
+            let format = this.#params.timePicker24Hour ? 'H:m' : 'h:m:a';
             let time = dayjs().format(format);
             // Explode the time units into an array.
             time = time.split(':');
 
             html += `<div class="datepicker-time"><select name="hours" class="hours">`;
 
-            const hours = _(_key).params.timePicker24Hour ? _(_key).hours : 13;
+            const hours = this.#params.timePicker24Hour ? this.#hours : 13;
 
             for (let i = 0; i < hours; i++) {
                 // No zero hour in meridiem format.
-                if (i === 0 && !_(_key).params.timePicker24Hour) {
+                if (i === 0 && !this.#params.timePicker24Hour) {
                     continue;
                 }
 
@@ -464,7 +583,7 @@ const C_Datepicker = (function() {
 
             html += `</select><select name="minutes" class="minutes">`;
 
-            for (let i = 0; i < _(_key).minutes; i++) {
+            for (let i = 0; i < this.#minutes; i++) {
                 let selected = i == time[1] ? 'selected' : '';
                 let zerofill = i < 10 ? '0' : '';
                 html += `<option value="`+ i +`" `+ selected +`>`+ zerofill + i +`</option>`;
@@ -473,7 +592,7 @@ const C_Datepicker = (function() {
             html += `</select>`;
 
             // Build the meridiem drop down list.
-            if (!_(_key).params.timePicker24Hour) {
+            if (!this.#params.timePicker24Hour) {
                 html += `<select name="meridiems" class="meridiems">`;
 
                 const meridiems = ['am', 'pm'];
@@ -491,15 +610,15 @@ const C_Datepicker = (function() {
         // Build the control buttons according to the parameter setting.
         html += `<div class="datepicker-controls">`;
 
-        if (_(_key).params.today) {
+        if (this.#params.today) {
             html += `<button type="button" class="ctrl-button today" tabindex="-1" >`+ CodaliaLang.datepicker['today'] +`</button>`;
         }
 
-        if (_(_key).params.clear) {
+        if (this.#params.clear) {
             html += `<button type="button" class="ctrl-button clear" tabindex="-1" >`+ CodaliaLang.datepicker['clear'] +`</button>`;
         }
 
-        if (_(_key).params.cancel) {
+        if (this.#params.cancel) {
             html += `<button type="button" class="ctrl-button cancel" tabindex="-1" >`+ CodaliaLang.datepicker['cancel'] +`</button>`;
         }
 
@@ -511,29 +630,29 @@ const C_Datepicker = (function() {
     /*
      * Updates the grid as well as some parts of the datepicker according to the recent changes.
      */
-    function _updateDatepicker(_) {
+    #updateDatepicker() {
         // Update the date drop down lists.
-        if (_(_key).params.showDropdowns) {
+        if (this.#params.showDropdowns) {
             // Unselect the old selected month.
-            _(_key).datepicker.querySelector('.months').selected = false;
+            this.#datepicker.querySelector('.months').selected = false;
             // Get the numeric value of the month to display (ie: 0 => January, 1 => February...).
-            const monthNumeric = dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).format('M') - 1;
+            const monthNumeric = dayjs(this.#dpYear + '-' + this.#dpMonth).format('M') - 1;
             // Update the selected option.
-            _(_key).datepicker.querySelector('.months option[value="'+ monthNumeric +'"]').selected = true;
+            this.#datepicker.querySelector('.months option[value="'+ monthNumeric +'"]').selected = true;
 
             // Same with year.
-            _(_key).datepicker.querySelector('.years').selected = false;
-            const year = dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).format('YYYY');
-            _(_key).datepicker.querySelector('.years option[value="'+ year +'"]').selected = true;
+            this.#datepicker.querySelector('.years').selected = false;
+            const year = dayjs(this.#dpYear + '-' + this.#dpMonth).format('YYYY');
+            this.#datepicker.querySelector('.years option[value="'+ year +'"]').selected = true;
         }
         // Update the text date.
         else {
-            _(_key).datepicker.querySelector('.view-switch').innerHTML = dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).format('MMMM YYYY');
+            this.#datepicker.querySelector('.view-switch').innerHTML = dayjs(this.#dpYear + '-' + this.#dpMonth).format('MMMM YYYY');
         }
 
         // Update the datepicker grid.
 
-        const days = _getDays(_);
+        const days = this.#getDays();
         let grid = '';
 
         days.forEach((day) => {
@@ -544,36 +663,36 @@ const C_Datepicker = (function() {
             grid += `<span data-date="` + day.timestamp + `" class="datepicker-cell day ` + extra + `">` + day.text + `</span>`;
         });
 
-        _(_key).datepicker.querySelector('.datepicker-grid').innerHTML = grid;
+        this.#datepicker.querySelector('.datepicker-grid').innerHTML = grid;
 
         // Update both the previous and next buttons according to the month currently displayed in the datepicker.
 
-        _(_key).datepicker.querySelector('.prev-button').disabled = false;
-        if (_(_key).params.minDate) {
+        this.#datepicker.querySelector('.prev-button').disabled = false;
+        if (this.#params.minDate) {
             // Get the year and month of the min date to compare with the datepicker's.
-            let minDate = dayjs(_(_key).params.minDate).format('YYYY-M');
-            if (dayjs(dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).subtract(1, 'month').format('YYYY-M')).isBefore(minDate)) {
-                _(_key).datepicker.querySelector('.prev-button').disabled = true;
+            let minDate = dayjs(this.#params.minDate).format('YYYY-M');
+            if (dayjs(dayjs(this.#dpYear + '-' + this.#dpMonth).subtract(1, 'month').format('YYYY-M')).isBefore(minDate)) {
+                this.#datepicker.querySelector('.prev-button').disabled = true;
             }
         }
 
-        _(_key).datepicker.querySelector('.next-button').disabled = false;
-        if (_(_key).params.maxDate) {
+        this.#datepicker.querySelector('.next-button').disabled = false;
+        if (this.#params.maxDate) {
             // Get the year and month of the min date to compare with the datepicker's.
-            let maxDate = dayjs(_(_key).params.maxDate).format('YYYY-M');
-            if (dayjs(dayjs(_(_key).dpYear + '-' + _(_key).dpMonth).add(1, 'month').format('YYYY-M')).isAfter(maxDate)) {
-                _(_key).datepicker.querySelector('.next-button').disabled = true;
+            let maxDate = dayjs(this.#params.maxDate).format('YYYY-M');
+            if (dayjs(dayjs(this.#dpYear + '-' + this.#dpMonth).add(1, 'month').format('YYYY-M')).isAfter(maxDate)) {
+                this.#datepicker.querySelector('.next-button').disabled = true;
             }
         }
 
-        // Update the time drop down lists only when it's called by the _setStartingDate function.
-        if (_updateDatepicker.caller.name == '_setStartingDate' && _(_key).params.timePicker) {
+        // Update the time drop down lists only when it's called by the #setStartingDate function.
+        if (#updateDatepicker.caller.name == '#setStartingDate' && this.#params.timePicker) {
             // Use a date in the past to get the time in the desired format.
-            let time = dayjs('2001-01-01 ' + _(_key).selectedTime).format('H:m').split(':');
+            let time = dayjs('2001-01-01 ' + this.#selectedTime).format('H:m').split(':');
             let meridiem = 'am';
 
             // Convert the 24 hour time to 12 hour time.
-            if (!_(_key).params.timePicker24Hour) {
+            if (!this.#params.timePicker24Hour) {
                 if (time[0] > 12) {
                     time[0] = +time[0] - 12;
                     meridiem = 'pm';
@@ -590,17 +709,17 @@ const C_Datepicker = (function() {
             }
 
             // Unselect the old selected hour.
-            _(_key).datepicker.querySelector('.hours').selected = false;
+            this.#datepicker.querySelector('.hours').selected = false;
             // Update the selected option.
-            _(_key).datepicker.querySelector('.hours option[value="'+ time[0] +'"]').selected = true;
+            this.#datepicker.querySelector('.hours option[value="'+ time[0] +'"]').selected = true;
             // Unselect the old selected minute.
-            _(_key).datepicker.querySelector('.minutes').selected = false;
+            this.#datepicker.querySelector('.minutes').selected = false;
             // Update the selected option.
-            _(_key).datepicker.querySelector('.minutes option[value="'+ time[1] +'"]').selected = true;
+            this.#datepicker.querySelector('.minutes option[value="'+ time[1] +'"]').selected = true;
 
-            if (_(_key).datepicker.querySelector('.meridiems')) {
-                _(_key).datepicker.querySelector('.meridiems').selected = false;
-                _(_key).datepicker.querySelector('.meridiems option[value="'+ meridiem +'"]').selected = true;
+            if (this.#datepicker.querySelector('.meridiems')) {
+                this.#datepicker.querySelector('.meridiems').selected = false;
+                this.#datepicker.querySelector('.meridiems option[value="'+ meridiem +'"]').selected = true;
             }
         }
     }
@@ -608,195 +727,64 @@ const C_Datepicker = (function() {
     /*
      * Called just one time through the callback function.
      */
-    function _setStartingDate(_, date) {
-        if (_(_key).params.displayStartingDate) {
-            _getHostElement(_).value = dayjs(date).format(_(_key).params.format);
+    #setStartingDate(date) {
+        if (this.#params.displayStartingDate) {
+            this.#getHostElement().value = dayjs(date).format(this.#params.format);
         }
 
-        _(_key).selectedDay = dayjs(date).format('YYYY-M-D');
-        _(_key).dpMonth = dayjs(date).format('M');
-        _(_key).dpYear = dayjs(date).format('YYYY');
-        _(_key).selectedTime = _(_key).params.timePicker ? dayjs(date).format('HH:mm') : null;
-        _updateDatepicker(_);
+        this.#selectedDay = dayjs(date).format('YYYY-M-D');
+        this.#dpMonth = dayjs(date).format('M');
+        this.#dpYear = dayjs(date).format('YYYY');
+        this.#selectedTime = this.#params.timePicker ? dayjs(date).format('HH:mm') : null;
+        this.#updateDatepicker();
     }
 
 
-    // The datepicker constructor.
-    const _Datepicker = function(element, params, callback) {
-        // Creates a private object
-        this._ = _private(); 
-
-        // Initialize both private properties and parameters.
-        _initProperties(this._, element);
-        _initParams(this._, params);
-
-        // Some DayJS functions require the locale data plugin.
-        dayjs.extend(window.dayjs_plugin_localeData);
-        // Set the locale for the datepicker.
-        dayjs.locale(this._(_key).params.locale);
-
-        _setYears(this._);
-        _setMonths(this._);
-        _setDates(this._);
-
-        // Create a div container for the datepicker.
-        this._(_key).datepicker = document.createElement('div');
-        this._(_key).datepicker.classList.add('datepicker-container');
-        // Insert the datepicker in the container.
-        this._(_key).datepicker.insertAdjacentHTML('afterbegin', _renderDatepicker(this._));
-        // Insert the div container after the given element.
-        _getHostElement(this._).insertAdjacentElement('afterend', this._(_key).datepicker);
-
-        // Hide the datepicker.
-        this.hide();
-
-        // Delegate the click event to the datepicker element to check whenever an element is clicked.
-        this._(_key).datepicker.addEventListener('click', this, false);
-
-        this.handleEvent = function(evt) {
-            // Check the day (make sure it's not disabled)
-            if (evt.target.classList.contains('day') && !evt.target.classList.contains('disabled')) {
-                _setDate(this._, evt.target.dataset.date);
-
-                if (this._(_key).params.autoHide) {
-                    this._(_key).datepicker.style.display = 'none';
-                }
-            }
-
-            // Check for button.
-
-            if (evt.target.classList.contains('prev-button')) {
-                _setToPrevMonth(this._);
-                _updateDatepicker(this._);
-            }
-
-            if (evt.target.classList.contains('next-button')) {
-                _setToNextMonth(this._);
-                _updateDatepicker(this._);
-            }
-
-            if (evt.target.classList.contains('cancel')) {
-                this._(_key).datepicker.style.display = 'none';
-            }
-
-            if (evt.target.classList.contains('clear')) {
-                _clearDate(this._);
-
-                if (this._(_key).params.autoHide) {
-                    this._(_key).datepicker.style.display = 'none';
-                }
-            }
-
-            if (evt.target.classList.contains('today')) {
-                _setToday(this._);
-                _updateDatepicker(this._);
-
-                if (this._(_key).params.autoHide) {
-                    this._(_key).datepicker.style.display = 'none';
-                }
-            }
-        }
-
-        // Show or hide the datepicker according to where the user clicks (outside the datepicker or inside the host input element).
-        function showHide(evt) {
-            // The clicked target is not the input host and is not contained into the datepicker element.
-            if (evt.target !== _getHostElement(this._) && !this._(_key).datepicker.contains(evt.target)) {
-                this._(_key).datepicker.style.display = 'none';
-            }
-
-            // The user has clicked into the host input element.
-            if (evt.target === _getHostElement(this._)) {
-                this._(_key).datepicker.style.display = 'block';
-            }
-        }
-
-        document.addEventListener('click', showHide.bind(this), false);
-
-        // Set the month and year attributes of the datepicker whenever the month and year drop down lists change.
-        function setMonthYear(evt) {
-            if (this._(_key).params.showDropdowns && evt.target.classList.contains('months')) {
-                _changeMonth(this._);
-                _updateDatepicker(this._);
-            }
-
-            if (this._(_key).params.showDropdowns && evt.target.classList.contains('years')) {
-                _changeYear(this._);
-                _updateDatepicker(this._);
-            }
-        }
-
-        document.addEventListener('change', setMonthYear.bind(this), false);
-
-        // Create and initialise the custom events
-        this._(_key).beforeSetDateEvent = new CustomEvent('beforeSetDate', {detail: {datepicker: this, date: null, time: null}});
-        this._(_key).afterSetDateEvent = new CustomEvent('afterSetDate', {detail: {datepicker: this, date: null, time: null}});
-        this._(_key).beforeClearEvent = new CustomEvent('beforeClear', {detail: {datepicker: this, date: null, time: null}});
-        this._(_key).afterClearEvent = new CustomEvent('afterClear', {detail: {datepicker: this}});
-        this._(_key).beforeTodayEvent = new CustomEvent('beforeToday', {detail: {datepicker: this, date: null, time: null}});
-        this._(_key).afterTodayEvent = new CustomEvent('afterToday', {detail: {datepicker: this}});
-
-        // Run the given callback function.
-        if (callback !== undefined) {
-            callback(this);
-
-            // Check for a possible starting date.
-            if (this.startingDate !== undefined) {
-                _setStartingDate(this._, this.startingDate);
-            }
-        }
-    };
 
     // Public methods.
 
-    _Datepicker.prototype = {
-        today: function(format) {
-            format = format !== undefined ? format : this._(_key).params.format;
-            return dayjs().format(format);
-        },
-
-        current: function() {
-            return dayjs(this._(_key).dpYear + '-' + this._(_key).dpMonth).format('YYYY-MM-DD');
-       },
-
-        setParams: function(params) {
-            for (const key in params) {
-                this._(_key).params[key] = params[key];
-            }
-        },
-
-        getParams: function(name) {
-            return name === undefined ? this._(_key).params : this._(_key).params[name];
-        },
-
-        // Rebuilds all the datepicker.
-        render: function() {
-            this._(_key).datepicker.innerHTML = _renderDatepicker(this._);
-        },
-
-        clear: function() {
-            _clearDate(this._);
-        },
-
-        show: function() {
-            this._(_key).datepicker.style.display = 'block';
-        },
-
-        hide: function() {
-            this._(_key).datepicker.style.display = 'none';
-        },
-
-        getHostElement: function() {
-            return _getHostElement(this._);
-        },
-
-        getHostAttributes: function(name) {
-            return name === undefined ? this._(_key).host : this._(_key).host[name];
-        },
-    };
-
-    // Returns a init property that returns the "constructor" function.
-    return {
-        init: _Datepicker
+    today(format) {
+        format = format !== undefined ? format : this.#params.format;
+        return dayjs().format(format);
     }
-})();
+
+    current() {
+        return dayjs(this.#dpYear + '-' + this.#dpMonth).format('YYYY-MM-DD');
+    }
+
+    setParams(params) {
+        for (const key in params) {
+            this.#params[key] = params[key];
+        }
+    }
+
+    getParams(name) {
+        return name === undefined ? this.#params : this.#params[name];
+    }
+
+    // Rebuilds all the datepicker.
+    render() {
+        this.#datepicker.innerHTML = this.#renderDatepicker();
+    }
+
+    clear() {
+        this.#clearDate();
+    }
+
+    show() {
+        this.#datepicker.style.display = 'block';
+    }
+
+    hide() {
+        this.#datepicker.style.display = 'none';
+    }
+
+    getHostElement() {
+        return this.#getHostElement();
+    }
+
+    getHostAttributes(name) {
+        return name === undefined ? this.#host : this.#host[name];
+    }
+}
 

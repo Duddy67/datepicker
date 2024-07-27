@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, afterInit);*/
 
     for (let i = 0; i < elems.length; i++) {
-        elems[i].datepicker = new C_Datepicker.init(elems[i], {
+        elems[i].datepicker = new C_Datepicker(elems[i], {
             'autoHide': true,
             'format': 'ddd D MMM YYYY',
             //'timePicker': true,
