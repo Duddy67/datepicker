@@ -200,6 +200,22 @@ class C_Datepicker {
     }
 
     /*
+     * Utility function that returns the name of the caller.
+     */
+    #getCallerName() {
+        const stack = new Error().stack;
+        const stackLines = stack.split('\n');
+        const callerLine = stackLines[3]; // The caller is usually on the 3rd line
+
+        const match = callerLine.match(/at (\S+) \(/);
+        if (match) {
+            return match[1];
+        }
+
+        return null;
+    }
+
+    /*
      * Returns the host input element.
      */
     #getHostElement() {
@@ -686,7 +702,7 @@ class C_Datepicker {
         }
 
         // Update the time drop down lists only when it's called by the #setStartingDate function.
-        if (#updateDatepicker.caller.name == '#setStartingDate' && this.#params.timePicker) {
+        if (this.#getCallerName() == '#setStartingDate' && this.#params.timePicker) {
             // Use a date in the past to get the time in the desired format.
             let time = dayjs('2001-01-01 ' + this.#selectedTime).format('H:m').split(':');
             let meridiem = 'am';
